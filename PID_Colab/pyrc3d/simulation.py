@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from IPython.display import clear_output
 from utilities import utils, geometry_utils
 import time
+import cv2
 
 class Sim():
     """
@@ -45,6 +46,7 @@ class Sim():
             agent_pos=(0, 0),
             goal_loc=None,
             custom_env_path=None,
+            planned_path=None,
             GUI=True
         ) -> None:
         """
@@ -69,6 +71,9 @@ class Sim():
 
         if custom_env_path is not None:
             self.custom_env_path = custom_env_path
+
+        if planned_path is not None:
+            self.planned_path = planned_path
 
         self.GUI = GUI
         if GUI:
@@ -133,8 +138,7 @@ class Sim():
                 path[i] + (self.obs_h/2.,),
                 path[i+1] + (self.obs_h/2.,),
                 lineColorRGB=(0, 0, 1),
-                lineWidth=12,
-                parentObjectUniqueId=self.floor
+                lineWidth=12
             )
 
     def step(self) -> None:
@@ -245,6 +249,17 @@ class Sim():
         rgb_array = np.array(px, dtype=np.uint8)
         rgb_array = np.reshape(rgb_array, (side_length, side_length, 4))
         rgb_array = rgb_array[:, :, :3]
+
+        # If self.planned_path is not None, draw the planned path on the image using OpenCV
+        if self.planned_path is not None:
+            for i in range(len(self.planned_path) - 1):
+                cv2.line(
+                    rgb_array,
+                    tuple(self.planned_path[i][:2]),
+                    tuple(self.planned_path[i+1][:2]),
+                    (0, 0, 255),
+                    10
+                )
 
         return rgb_array
 
