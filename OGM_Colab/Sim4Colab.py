@@ -291,5 +291,5 @@ def main():
         # plt.show(block=False)
         # plt.pause(0.01)
 
-# if __name__ == '__main__':
-#     main()
+if __name__ == '__main__':
+    main()
