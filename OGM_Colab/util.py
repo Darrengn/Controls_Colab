@@ -1,5 +1,3 @@
-import numpy as np
-
 def World2Grid(point, realMapSize, gridMapSize, res=0.1):
     """
     A helper method to determine the grid (in grid map coordinate)
@@ -47,10 +45,3 @@ def Grid2World(grid, realMapSize, gridMapSize, res=0.1):
     x, y = i + res/2, j + res/2
 
     return (x, y)
-
-def Body2World(velocity, steering, robot_pose):
-    delta_time = 1/200
-    pos, yaw = robot_pose[0:2], robot_pose[2]
-    T_B2W = np.array([[np.cos(yaw), -np.sin(yaw), 0.],
-                      [np.sin(yaw), np.cos(yaw), 0.],
-                      [0., 0., 1.]])

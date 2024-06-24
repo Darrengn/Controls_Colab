@@ -1,16 +1,21 @@
 # ------------------------------------------------------------------
 # PyBullet Simulation
 #
-# Jeffrey Chen
-#
 # Function:
 # Initialize the simulation, control the robot to collect data, and
 # return the dataset.
 #
-# This file contains a class Simulation that sets up the PyBullet simulation
+# This class contains a class Simulation that sets up the PyBullet simulation
 # for the vehicle and another class PathSimulator that provides a pre-defined
 # path and a controller for the operation.
 # ------------------------------------------------------------------
+
+import sys
+sys.path.insert(0, '/content/OGM4Colab')
+!cd /
+
+from google.colab import output
+%matplotlib inline
 
 from pyrc3d.agent import Car
 from pyrc3d.simulation import Sim
@@ -27,22 +32,15 @@ from time import time
 ######### This section to load and store the simulation configuration #########
 
 # Declare user-specific paths to files.
-
-#### For running on local computer
-# ENV_PATH = "configs/env/simple_env.yaml"
-# CAR_PATH = "configs/car/car_config.yaml"
-# CAR_URDF_PATH = "configs/resources/f10_racecar/racecar_differential.urdf"
-
-#### For running on Colab
-ENV_PATH = "/content/Controls_Colab/PID_Colab/configs/env/simple_env.yaml"
-CAR_PATH = "/content/Controls_Colab/PID_Colab/configs/car/car_config.yaml"
-CAR_URDF_PATH = "/content/Controls_Colab/PID_Colab/configs/resources/f10_racecar/racecar_differential.urdf"
+ENV_PATH = "/content/Controls_Colab/OGM_Colab/configs/env/simple_env.yaml"
+CAR_PATH = "/content/Controls_Colab/OGM_Colab/configs/car/car_config.yaml"
+CAR_URDF_PATH = "/content/Controls_Colab/OGM_Colab/configs/resources/f10_racecar/racecar_differential.urdf"
 
 # Constants.
 SIMULATE_LIDAR = True
 
 # FPS constants.
-PATH_SIM_FPS = 200 # Perform control at 200Hz
+PATH_SIM_FPS = 60 # Perform control at 90Hz
 LIDAR_FPS = 30 # Simulate lidar at 30Hz
 PRINT_FPS = 0.1 # Print `dist` every 10 seconds for debugging
 COLLECT_DATA_FPS = 2 # Collect data frequency
@@ -61,6 +59,12 @@ RAY_END_ANG = 135 # angle b/w robot and the last ray
 class Simulation():
     """
     A class used to perform the simulation of environment and robot.
+
+    Attributes:
+        sim (Sim): Simulation of environment.
+        beta (float): Angular width of each beam.
+        rayStartAng (float): Relative angle between robot and the 1st ray.
+        Z_max (float): Maximum measurement range of lidar.
     """
 
     def __init__(self):
@@ -110,27 +114,28 @@ class Simulation():
         # Initialize path simulator
         self.path_sim = PathSimulator(self.car, PATH_SIM_FPS)
 
-    def collectData(self, outputImage: bool, begin=False):
+        # self.dataset = {}
+        # self.t = 0
+
+
+    def collectData(self, outputImage):
         """
         The function to collect and store data while running the simulation.
 
         Parameters:
-            outputImage (bool): True = display PyBullet image, False otherwise.
+            None
 
         Returns:
-            image (numpy array): Image of PyBullet simulation.
-            dataset (tuple): Tuple of current pose and ray cone end points.
-            status (int): 1 = moving in progress, -1 = arrived destination.
+            None
         """
 
         image = None
-        vel, steering = None, None
 
         # Get sensors' data: array of hit points (x, y) in world coord
         rays_data, dists, hitPoints = self.car.get_sensor_data(
             sensor = 'lidar',
             common = False)
-        
+
         # Obtain the car's current pose and sensor data
         x, y, yaw = self.car.get_state(to_array=False)
         dataset = ((x, y, yaw), hitPoints)
@@ -143,30 +148,27 @@ class Simulation():
             self.car.simulate_sensor('lidar', rays_data)
 
         # Perform car's movement
-        # if self.path_sim_time.update_time():
-        vel, steering = self.path_sim.navigate(x, y, yaw)
+        if self.path_sim_time.update_time():
+            vel, steering = self.path_sim.navigate(x, y, yaw)
 
-        if vel == float('inf'):
-            print('Arrived destination.')
-            if outputImage:
-                image = self.sim.image_env()
-            self.sim.kill_env()
-            return image, dataset, -1, vel, steering
+            if vel == float('inf'):
+                print('Arrived destination.')
+                if outputImage:
+                    image = self.sim.image_env()
+                self.sim.kill_env()
+                return image, dataset, -1
 
-        # Perform action
-        self.car.act(vel, steering)
+            # Perform action
+            self.car.act(vel, steering)
 
-        # Advance one time step in the simulation.
-        self.sim.step()
+            # Advance one time step in the simulation.
+            self.sim.step()
 
-        # # Capture image of true map
-        # if outputImage and self.capture_image_time.update_time():
-        #     image = self.sim.image_env()
-                
-        if begin:
+        # Capture image of true map
+        if outputImage and self.capture_image_time.update_time():
             image = self.sim.image_env()
 
-        return image, dataset, 1, vel, steering
+        return image, dataset, 1
 
 class PathSimulator():
     def __init__(
@@ -271,7 +273,7 @@ def main():
     sim = Simulation()
 
     while True:
-        image, dataset, status, vel, steering = sim.collectData(True)
+        image, dataset, status = sim.collectData(True)
 
         # Display the image
         if image is not None:
@@ -284,12 +286,12 @@ def main():
                   round((time()-t0)%60, 1), 'sec.')
             plt.show()
             break
-        
+
         #### For running on Colab
         plt.show(block=True)
         #### For running on local computer
         # plt.show(block=False)
         # plt.pause(0.01)
 
-if __name__ == '__main__':
-    main()
+# if __name__ == '__main__':
+#     main()
