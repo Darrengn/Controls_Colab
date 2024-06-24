@@ -14,7 +14,6 @@ import sys
 sys.path.insert(0, '/content/OGM4Colab')
 
 from google.colab import output
-%matplotlib inline
 
 from pyrc3d.agent import Car
 from pyrc3d.simulation import Sim
