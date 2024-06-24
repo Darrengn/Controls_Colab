@@ -96,13 +96,13 @@ class Simulation():
         map_size = 5.0
         res = 0.01
         grid_size = int(map_size/res)
-        planned_path = [World2Grid(pt, map_size, grid_size, res) for pt in planned_path]
-        planned_path = [(x, 500-y) for x, y in planned_path]
+        planned_path_grid = [World2Grid(pt, map_size, grid_size, res) for pt in planned_path]
+        planned_path_grid = [(x, 500-y) for x, y in planned_path_grid]
 
         self.sim.create_env(
             env_config=ENV_PATH,
             GUI=False,
-            planned_path=planned_path
+            planned_path=planned_path_grid
         )
 
         # Set simulation response time
@@ -125,7 +125,7 @@ class Simulation():
 
         self.car.place_car(
             self.sim.floor,
-            xy_coord=(0.0, 0.0),
+            xy_coord=planned_path[0],
         )
 
         # Initialize path simulator
