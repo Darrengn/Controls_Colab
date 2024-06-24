@@ -34,9 +34,9 @@ from time import time
 # CAR_URDF_PATH = "configs/resources/f10_racecar/racecar_differential.urdf"
 
 #### For running on Colab
-ENV_PATH = "/content/OGM4Colab/Particle_Filter_Colab/configs/env/simple_env.yaml"
-CAR_PATH = "/content/OGM4Colab/Particle_Filter_Colab/configs/car/car_config.yaml"
-CAR_URDF_PATH = "/content/OGM4Colab/Particle_Filter_Colab/configs/resources/f10_racecar/racecar_differential.urdf"
+ENV_PATH = "/content/Controls_Colab/PID_Colab/configs/env/simple_env.yaml"
+CAR_PATH = "/content/Controls_Colab/PID_Colab/configs/car/car_config.yaml"
+CAR_URDF_PATH = "/content/Controls_Colab/PID_Colab/configs/resources/f10_racecar/racecar_differential.urdf"
 
 # Constants.
 SIMULATE_LIDAR = True
