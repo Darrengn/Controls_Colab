@@ -273,6 +273,8 @@ class PathSimulator():
         velocity = min(self.max_velocity, cross_track_error) / self.max_velocity
         velocity = np.clip(velocity, -1, 1)  # Limit velocity to [-1, 1]
 
+        print('Waypoint:', self.next, 'Distance:', round(distance_to_waypoint, 2),'Velocity:', round(velocity, 2), 'Steering:', round(steering, 2))
+
         return velocity, steering
 
 def main():
