@@ -130,10 +130,10 @@ class Sim():
         """
         for i in range(len(path) - 1):
             p.addUserDebugLine(
-                path[i] + (self.obs_h/2.,),
-                path[i+1] + (self.obs_h/2.,),
+                path[i] + (self.obs_h/2. + 1,),
+                path[i+1] + (self.obs_h/2. + 1,),
                 lineColorRGB=(0, 0, 1),
-                lineWidth=12
+                lineWidth=50
             )
 
     def step(self) -> None:
