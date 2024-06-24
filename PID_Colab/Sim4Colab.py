@@ -238,6 +238,8 @@ class PathSimulator():
             x_real,y_real = Grid2World((x, 500-y), 5.0, 500, 0.01)
             self.waypoints[i+1] = (x_real, y_real, -pi/2, 1, 1)
 
+        print('Waypoints:', self.waypoints)
+
         self.next = 1 # waypoint number
         self.length = len(self.waypoints)
         self.dist2next = 0
