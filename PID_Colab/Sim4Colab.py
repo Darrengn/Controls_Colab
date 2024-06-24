@@ -120,6 +120,8 @@ class Simulation():
 
         starting_point = World2Grid(planned_path[0], 5.0, 500, 0.01)
 
+        print('Starting point:', starting_point)
+
         self.car.place_car(
             self.sim.floor,
             xy_coord=starting_point,
