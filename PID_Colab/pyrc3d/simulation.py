@@ -250,15 +250,15 @@ class Sim():
         rgb_array = np.reshape(rgb_array, (side_length, side_length, 4))
         rgb_array = rgb_array[:, :, :3]
 
-        print(rgb_array.shape)
+        rgb_array = cv2.cvtColor(rgb_array, cv2.COLOR_RGB2BGR)
 
         # If self.planned_path is not None, draw the planned path on the image using OpenCV
         if self.planned_path is not None:
             for i in range(len(self.planned_path) - 1):
                 cv2.line(
                     rgb_array,
-                    tuple(self.planned_path[i][:2]),
-                    tuple(self.planned_path[i+1][:2]),
+                    tuple(self.planned_path[i]),
+                    tuple(self.planned_path[i+1]),
                     (0, 0, 255),
                     10
                 )
