@@ -10,9 +10,6 @@
 # path and a controller for the operation.
 # ------------------------------------------------------------------
 
-import sys
-sys.path.insert(0, '/content/OGM4Colab')
-
 from google.colab import output
 
 from pyrc3d.agent import Car
@@ -30,9 +27,9 @@ from time import time
 ######### This section to load and store the simulation configuration #########
 
 # Declare user-specific paths to files.
-ENV_PATH = "/content/Controls_Colab/OGM_Colab/configs/env/simple_env.yaml"
-CAR_PATH = "/content/Controls_Colab/OGM_Colab/configs/car/car_config.yaml"
-CAR_URDF_PATH = "/content/Controls_Colab/OGM_Colab/configs/resources/f10_racecar/racecar_differential.urdf"
+ENV_PATH = "/content/Controls_Colab/PID_Colab/configs/env/simple_env.yaml"
+CAR_PATH = "/content/Controls_Colab/PID_Colab/configs/car/car_config.yaml"
+CAR_URDF_PATH = "/content/Controls_Colab/PID_Colab/configs/resources/f10_racecar/racecar_differential.urdf"
 
 # Constants.
 SIMULATE_LIDAR = True
