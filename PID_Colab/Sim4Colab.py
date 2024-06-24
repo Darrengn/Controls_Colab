@@ -222,30 +222,14 @@ class PathSimulator:
 
         self.next = 1  # waypoint number
         self.length = len(self.waypoints)
-        self.lookahead_distance = 5.0  # lookahead distance in world units
-
-    def find_lookahead_point(self, x, y):
-        lookahead_point = None
-        for i in range(self.next, self.length + 1):
-            waypoint = self.waypoints[i]
-            waypoint_x, waypoint_y = waypoint
-            distance = np.hypot(waypoint_x - x, waypoint_y - y)
-            if distance > self.lookahead_distance:
-                lookahead_point = waypoint
-                self.next = i
-                break
-        if lookahead_point is None:
-            lookahead_point = self.waypoints[self.length]
-        return lookahead_point
 
     def navigate(self, x, y, yaw):
         if self.next > self.length:
             return 0, 0  # No more waypoints to follow
 
-        lookahead_point = self.find_lookahead_point(x, y)
-        waypoint_x, waypoint_y = lookahead_point
+        waypoint_x, waypoint_y = self.waypoints[self.next]
 
-        # Calculate heading to the lookahead point
+        # Calculate heading to the next waypoint
         dx = waypoint_x - x
         dy = waypoint_y - y
         desired_heading = atan2(dy, dx)
@@ -262,8 +246,12 @@ class PathSimulator:
 
         # Simple proportional control for velocity
         cross_track_error = np.hypot(dx, dy)
-        velocity = self.max_velocity * (cross_track_error / self.lookahead_distance)
+        velocity = self.max_velocity * (cross_track_error / 10)  # Adjust scaling factor as needed
         velocity = np.clip(velocity, -self.max_velocity, self.max_velocity)  # Limit velocity to [-max_velocity, max_velocity]
+
+        # Check if the agent has reached the waypoint
+        if cross_track_error < 1.0:
+            self.next += 1
 
         return velocity, steering
 
