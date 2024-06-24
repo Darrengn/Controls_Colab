@@ -209,7 +209,7 @@ class PathSimulator():
 
         self.car = car
         self.sim_fps = sim_fps
-        self.max_velocity = 60.0  # Maximum velocity of 60 units per second
+        self.max_velocity = 1  # Maximum velocity of 60 units per second
 
         self.velocity = 0
         self.steering = 0
@@ -268,7 +268,7 @@ class PathSimulator():
 
         # Proportional control for velocity
         distance_to_waypoint = np.hypot(dx, dy)
-        if distance_to_waypoint < 1.0:
+        if distance_to_waypoint < 0.05:
             self.next += 1
         velocity = min(self.max_velocity, cross_track_error) / self.max_velocity
         velocity = np.clip(velocity, -1, 1)  # Limit velocity to [-1, 1]
