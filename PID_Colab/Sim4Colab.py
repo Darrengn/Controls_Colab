@@ -269,8 +269,8 @@ class PathSimulator():
         steering = np.clip(steering, -1, 1)  # Limit steering to [-1, 1]
 
         # Proportional control for velocity
-        velocity = min(self.max_velocity, cross_track_error) / self.max_velocity
-        velocity = np.clip(velocity, -1, 1)  # Limit velocity to [-1, 1]
+        # velocity = min(self.max_velocity, cross_track_error) / self.max_velocity
+        # velocity = np.clip(velocity, -1, 1)  # Limit velocity to [-1, 1]
 
         # Check if the agent is stuck
         self.time_spent += delta_time
@@ -285,6 +285,8 @@ class PathSimulator():
         if cross_track_error < 1.0:
             self.next += 1
             self.time_spent = 0.0
+
+        velocity = 1
 
         return velocity, steering
 
