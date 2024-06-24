@@ -260,7 +260,7 @@ class Sim():
                     tuple(self.planned_path[i]),
                     tuple(self.planned_path[i+1]),
                     (255, 0, 0),
-                    10
+                    5
                 )
 
         rgb_array = cv2.cvtColor(rgb_array, cv2.COLOR_BGR2RGB)
