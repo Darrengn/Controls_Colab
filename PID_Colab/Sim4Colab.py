@@ -200,20 +200,15 @@ class Simulation():
 
         return image, dataset, 1
 
-class PathSimulator():
-    def __init__(
-            self,
-            car,
-            sim_fps,
-        ):
-
+class PathSimulator:
+    def __init__(self, car, sim_fps):
         self.car = car
         self.sim_fps = sim_fps
-        self.max_velocity = 1  # Maximum velocity of 60 units per second
+        self.max_velocity = 60.0  # Maximum velocity of 60 units per second
 
         self.velocity = 0
         self.steering = 0
-        self.pid = PID()
+        self.pid = PID(kp=1.0, ki=0.1, kd=0.05)
 
         self.planned_path = np.load('/content/Controls_Colab/PID_Colab/trajectory.npy')
         self.planned_path = [(x, y) for x, y in self.planned_path]
@@ -230,26 +225,40 @@ class PathSimulator():
         self.planned_path = [(x, y, h) for (x, y), h in zip(self.planned_path, heading)]
 
         self.waypoints = {}
-
         for i, (x, y, heading) in enumerate(self.planned_path):
-            x_real,y_real = Grid2World((x, 500-y), 5.0, 500, 0.01)
+            x_real, y_real = Grid2World((x, 500-y), 5.0, 500, 0.01)
             self.waypoints[i+1] = (x_real, y_real, heading)
 
         print('Waypoints:', self.waypoints)
 
-        self.next = 1 # waypoint number
+        self.next = 1  # waypoint number
         self.length = len(self.waypoints)
         self.dist2next = 0
         self.ifTurn = False
         self.max_time_per_waypoint = 5.0  # maximum time to reach a waypoint (seconds)
         self.time_spent = 0.0  # time spent at current waypoint
+        self.lookahead_distance = 5.0  # lookahead distance in world units
+
+    def find_lookahead_point(self, x, y):
+        lookahead_point = None
+        for i in range(self.next, self.length + 1):
+            waypoint = self.waypoints[i]
+            waypoint_x, waypoint_y, _ = waypoint
+            distance = np.hypot(waypoint_x - x, waypoint_y - y)
+            if distance > self.lookahead_distance:
+                lookahead_point = waypoint
+                self.next = i
+                break
+        if lookahead_point is None:
+            lookahead_point = self.waypoints[self.length]
+        return lookahead_point
 
     def navigate(self, x, y, yaw):
         if self.next > self.length:
             return 0, 0  # No more waypoints to follow
 
-        waypoint = self.waypoints[self.next]
-        waypoint_x, waypoint_y, waypoint_heading = waypoint
+        lookahead_point = self.find_lookahead_point(x, y)
+        waypoint_x, waypoint_y, waypoint_heading = lookahead_point
 
         # Calculate cross-track error
         dx = waypoint_x - x
@@ -269,24 +278,20 @@ class PathSimulator():
         steering = np.clip(steering, -1, 1)  # Limit steering to [-1, 1]
 
         # Proportional control for velocity
-        # velocity = min(self.max_velocity, cross_track_error) / self.max_velocity
-        # velocity = np.clip(velocity, -1, 1)  # Limit velocity to [-1, 1]
+        velocity = self.max_velocity * min(1, cross_track_error / self.lookahead_distance)
+        velocity = np.clip(velocity, -self.max_velocity, self.max_velocity)  # Limit velocity to [-max_velocity, max_velocity]
 
-        # Check if the agent is stuck
-        self.time_spent += delta_time
-        if self.time_spent > self.max_time_per_waypoint:
-            # Agent is stuck, apply corrective measures
-            print(f"Agent stuck at waypoint {self.next}. Applying corrective measures.")
-            self.next += 1
-            self.time_spent = 0.0
-            return 0, 0
-
-        # Check if the agent has reached the waypoint
+        # Check if the agent has reached the lookahead point
         if cross_track_error < 1.0:
             self.next += 1
             self.time_spent = 0.0
 
-        velocity = 50
+        # Timeout mechanism to avoid getting stuck
+        self.time_spent += delta_time
+        if self.time_spent > self.max_time_per_waypoint:
+            print(f"Agent stuck at waypoint {self.next}. Skipping to the next waypoint.")
+            self.next += 1
+            self.time_spent = 0.0
 
         return velocity, steering
 
