@@ -23,7 +23,7 @@ from math import *
 import matplotlib.pyplot as plt
 from IPython.display import clear_output
 from time import time
-from util import World2Grid
+from util import World2Grid, Grid2World
 
 ######### This section to load and store the simulation configuration #########
 
@@ -118,7 +118,7 @@ class Simulation():
             sensors=SENSORS
         )
 
-        starting_point = World2Grid(planned_path[0], 5.0, 50, 0.1)
+        starting_point = Grid2World(planned_path[0], 5.0, 500, 0.01)
 
         print('Starting point:', starting_point)
 
