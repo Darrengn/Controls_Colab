@@ -98,7 +98,7 @@ class Simulation():
         self.collect_data_time = Timings(COLLECT_DATA_FPS)
         self.capture_image_time = Timings(IMAGE_FPS)
 
-        # Initial the car
+        # Initialize the car
         self.car = Car(
             urdf_path=CAR_URDF_PATH,
             car_config=CAR_PATH,
@@ -107,15 +107,11 @@ class Simulation():
 
         self.car.place_car(
             self.sim.floor,
-            xy_coord=(0.0, 0.0)
+            xy_coord=(planned_path[0][0], planned_path[0][1])
         )
 
         # Initialize path simulator
-        self.path_sim = PathSimulator(self.car, PATH_SIM_FPS)
-
-        # self.dataset = {}
-        # self.t = 0
-
+        self.path_sim = PathSimulator(self.car, PATH_SIM_FPS, planned_path)
 
     def collectData(self, outputImage):
         """
@@ -151,7 +147,7 @@ class Simulation():
             vel, steering = self.path_sim.navigate(x, y, yaw)
 
             if vel == float('inf'):
-                print('Arrived destination.')
+                print('Arrived at destination.')
                 if outputImage:
                     image = self.sim.image_env()
                 self.sim.kill_env()
@@ -174,6 +170,7 @@ class PathSimulator():
             self,
             car,
             sim_fps,
+            path,
         ):
 
         self.car = car
@@ -184,50 +181,33 @@ class PathSimulator():
         self.steering = 0
         self.pid = PID()
 
-        # move: 1: forward, -1: backward, 0: stop
-        # turn: 1: right,   -1: left
-        # (x, y, heading, turn, move)
-        self.waypoints = {
-            1: (0.0, -1.95, -pi/2, 1, 1),  2: (-1.95, -1.95, pi, 1, 1),
-            3: (-1.95, 1.95, pi/2, 1, 1), 4: (1.95, 1.95, 0.0, 1, 1),
-            5: (1.95, -1.95, -pi/2, 1, 1), 6: (0.0, -1.95, pi, 1, 1),
-            7: (0.0, 1.95, pi/2, 1, 1), 8: (-1.95, 1.95, pi, -1, 1),
-            9: (-1.95, -1.95, -pi/2, -1, 1), 10: (1.95, -1.95, 0.0, -1, 1),
-            11: (1.95, 1.95, pi/2, -1, 1), 12: (0.0, 1.95, pi, -1, 1),
-            13: (0.0, 0.0, -pi/2, -1, 1),
-            # 1: (0.0, 1.95, pi/2, -1, 1), 2: (-1.95, 1.95, pi, -1, 1),
-            # 3: (-1.95, -1.95, -pi/2, -1, 1), 4: (1.95, -1.95, 0.0, -1, 1),
-            # 5: (1.95, 1.95, pi/2, -1, 1), 6: (0.0, 1.95, pi, -1, 1),
-            # 7: (0.0, 0.0, -pi/2, -1, 1),
-        }
-        self.next = 1 # waypoint number
-        self.length = len(self.waypoints)
+        # Load path from file
+        self.path = path
+        self.next = 0  # Start from the first waypoint
+        self.length = len(self.path)
         self.dist2next = 0
         self.ifTurn = False
 
     def navigate(self, x, y, yaw):
-        if self.next > len(self.waypoints):
+        if self.next >= len(self.path):
             return float('inf'), float('inf')
 
-        next_x, next_y, heading, turn, move = self.waypoints[self.next]
+        next_x, next_y = self.path[self.next]
+        heading = atan2(next_y - y, next_x - x)
+        move = 1  # Always move forward
+
         self.dist2next = np.linalg.norm(
             np.array((next_x, next_y)) - np.array((x, y)))
 
         # Turn
         if self.ifTurn == False:
-            if turn == 0:
-                self.ifTurn = True
-                return 0.0, 0.0
-
             if abs(heading - yaw) <= 0.15:
                 self.ifTurn = True
                 self.steering = 0.0
                 return 0.0, 0.0
 
-            if turn == -1: # left
-                self.steering = -1.0
-            elif turn == 1: # right
-                self.steering = 1.0
+            adjustment = self.pid.adjust(yaw, heading, 1.0 / self.sim_fps)
+            self.steering = max(min(adjustment, 1.0), -1.0)
 
             return 15.0, self.steering
 
@@ -238,7 +218,7 @@ class PathSimulator():
             return self.velocity, self.steering
         else:
             self.next += 1
-            print('Moving to next waypoint [', self.next-1, '/', self.length, '].')
+            print('Moving to next waypoint [', self.next, '/', self.length, '].')
             self.ifTurn = False
             self.velocity, self.steering = 0.0, 0.0
             return self.velocity, self.steering
@@ -255,13 +235,8 @@ class PathSimulator():
             self.velocity = -self.velocity
 
     def setSteer(self, yaw, heading):
-        if abs(yaw - heading) > 0.03:
-            step = 1.0
-            adjustment = self.pid.adjust(yaw, heading, step)
-            if adjustment >= 0.0:
-                self.steering = min(adjustment, 1.0)
-            else:
-                self.steering = max(adjustment, -1.0)
+        adjustment = self.pid.adjust(yaw, heading, 1.0 / self.sim_fps)
+        self.steering = max(min(adjustment, 1.0), -1.0)
 
 def main():
     """
