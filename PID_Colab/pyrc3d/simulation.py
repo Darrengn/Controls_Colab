@@ -259,9 +259,11 @@ class Sim():
                     rgb_array,
                     tuple(self.planned_path[i]),
                     tuple(self.planned_path[i+1]),
-                    (0, 0, 255),
+                    (255, 0, 0),
                     10
                 )
+
+        rgb_array = cv2.cvtColor(rgb_array, cv2.COLOR_BGR2RGB)
 
         return rgb_array
 
