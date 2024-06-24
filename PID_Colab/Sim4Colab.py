@@ -118,7 +118,7 @@ class Simulation():
             sensors=SENSORS
         )
 
-        starting_point = World2Grid(planned_path[0], 5.0, 500, 0.01)
+        starting_point = World2Grid(planned_path[0], 5.0, 50, 0.1)
 
         print('Starting point:', starting_point)
 
