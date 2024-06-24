@@ -222,10 +222,6 @@ class PathSimulator:
 
         self.next = 1  # waypoint number
         self.length = len(self.waypoints)
-        self.dist2next = 0
-        self.ifTurn = False
-        self.max_time_per_waypoint = 5.0  # maximum time to reach a waypoint (seconds)
-        self.time_spent = 0.0  # time spent at current waypoint
         self.lookahead_distance = 5.0  # lookahead distance in world units
 
     def find_lookahead_point(self, x, y):
@@ -249,12 +245,9 @@ class PathSimulator:
         lookahead_point = self.find_lookahead_point(x, y)
         waypoint_x, waypoint_y = lookahead_point
 
-        # Calculate cross-track error
+        # Calculate heading to the lookahead point
         dx = waypoint_x - x
         dy = waypoint_y - y
-        cross_track_error = np.hypot(dx, dy)
-
-        # Calculate heading to the lookahead point
         desired_heading = atan2(dy, dx)
         heading_error = desired_heading - yaw
         if heading_error > pi:
@@ -267,21 +260,10 @@ class PathSimulator:
         steering = self.pid.control(heading_error, delta_time)
         steering = np.clip(steering, -1, 1)  # Limit steering to [-1, 1]
 
-        # Proportional control for velocity
-        velocity = self.max_velocity * min(1, cross_track_error / self.lookahead_distance)
+        # Simple proportional control for velocity
+        cross_track_error = np.hypot(dx, dy)
+        velocity = self.max_velocity * (cross_track_error / self.lookahead_distance)
         velocity = np.clip(velocity, -self.max_velocity, self.max_velocity)  # Limit velocity to [-max_velocity, max_velocity]
-
-        # Check if the agent has reached the lookahead point
-        if cross_track_error < 1.0:
-            self.next += 1
-            self.time_spent = 0.0
-
-        # Timeout mechanism to avoid getting stuck
-        self.time_spent += delta_time
-        if self.time_spent > self.max_time_per_waypoint:
-            print(f"Agent stuck at waypoint {self.next}. Skipping to the next waypoint.")
-            self.next += 1
-            self.time_spent = 0.0
 
         return velocity, steering
 
