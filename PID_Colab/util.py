@@ -45,3 +45,6 @@ def Grid2World(grid, realMapSize, gridMapSize, res=0.1):
     x, y = i + res/2, j + res/2
 
     return (x, y)
+
+if __name__ == '__main__':
+    print(World2Grid((0.0, -1.95), 5.0, 500, 0.01))
