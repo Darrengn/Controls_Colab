@@ -86,19 +86,19 @@ class Simulation():
         planned_path = np.load('/content/Controls_Colab/PID_Colab/trajectory.npy')
         planned_path = [(x, y) for x, y in planned_path]
 
-        # planned_path = [
-        #     [0.0, -1.95], [-1.95, -1.95], [-1.95, 1.95], [1.95, 1.95],
-        #     [1.95, -1.95], [0.0, -1.95], [0.0, 1.95], [-1.95, 1.95],
-        #     [-1.95, -1.95], [1.95, -1.95], [1.95, 1.95], [0.0, 1.95],
-        #     [0.0, 0.0]
-        # ]
+        planned_path = [
+            [0.0, -1.95], [-1.95, -1.95], [-1.95, 1.95], [1.95, 1.95],
+            [1.95, -1.95], [0.0, -1.95], [0.0, 1.95], [-1.95, 1.95],
+            [-1.95, -1.95], [1.95, -1.95], [1.95, 1.95], [0.0, 1.95],
+            [0.0, 0.0]
+        ]
 
-        # map_size = 5.0
-        # res = 0.01
-        # grid_size = int(map_size/res)
-        # planned_path_grid = [World2Grid(pt, map_size, grid_size, res) for pt in planned_path]
-        # planned_path_grid = [(x, 500-y) for x, y in planned_path_grid]
-        planned_path_grid = [(x, y) for x, y in planned_path]
+        map_size = 5.0
+        res = 0.01
+        grid_size = int(map_size/res)
+        planned_path_grid = [World2Grid(pt, map_size, grid_size, res) for pt in planned_path]
+        planned_path_grid = [(x, 500-y) for x, y in planned_path_grid]
+        #planned_path_grid = [(x, y) for x, y in planned_path]
 
         self.sim.create_env(
             env_config=ENV_PATH,
@@ -234,16 +234,16 @@ class PathSimulator():
             # 7: (0.0, 0.0, -pi/2, -1, 1),
         }
 
-        self.waypoints = {}
+        # self.waypoints = {}
 
-        for i, (x, y, heading) in enumerate(self.planned_path):
-            x_real, y_real = Grid2World((x, 500-y), 5.0, 500, 0.01)
-            if i == 0:
-                self.waypoints[i+1] = (x_real, y_real, -pi/2, 0, 1)
-            elif i == len(self.planned_path)-1:
-                self.waypoints[i+1] = (x_real, y_real, heading, 0, 1)
-            else:
-                self.waypoints[i+1] = (x_real, y_real, heading, 1, 1)
+        # for i, (x, y, heading) in enumerate(self.planned_path):
+        #     x_real, y_real = Grid2World((x, 500-y), 5.0, 500, 0.01)
+        #     if i == 0:
+        #         self.waypoints[i+1] = (x_real, y_real, -pi/2, 0, 1)
+        #     elif i == len(self.planned_path)-1:
+        #         self.waypoints[i+1] = (x_real, y_real, heading, 0, 1)
+        #     else:
+        #         self.waypoints[i+1] = (x_real, y_real, heading, 1, 1)
 
 
         print('Waypoints:', self.waypoints)
