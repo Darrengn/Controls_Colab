@@ -241,6 +241,8 @@ class PathSimulator():
         self.length = len(self.waypoints)
         self.dist2next = 0
         self.ifTurn = False
+        self.max_time_per_waypoint = 5.0  # maximum time to reach a waypoint (seconds)
+        self.time_spent = 0.0  # time spent at current waypoint
 
     def navigate(self, x, y, yaw):
         if self.next > self.length:
@@ -272,7 +274,7 @@ class PathSimulator():
 
         # Check if the agent is stuck
         self.time_spent += delta_time
-        if self.time_spent > 2.0:
+        if self.time_spent > self.max_time_per_waypoint:
             # Agent is stuck, apply corrective measures
             print(f"Agent stuck at waypoint {self.next}. Applying corrective measures.")
             self.next += 1
