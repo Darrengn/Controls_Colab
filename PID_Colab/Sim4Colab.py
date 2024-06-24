@@ -87,6 +87,10 @@ class Simulation():
             GUI=False
         )
 
+        self.sim.draw_planned_path(
+            [[100, 100], [200, 200], [400, 300]]
+        )
+
         # Set simulation response time
         self.path_sim_time = Timings(PATH_SIM_FPS)
         self.lidar_time = Timings(LIDAR_FPS)
