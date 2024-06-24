@@ -276,7 +276,7 @@ def main():
 
     sim = Simulation()
     realMapSize = sim.sim.get_env_info()["map_size"]
-    input_map = Map('/content/OGM4Colab/Particle_Filter_Colab/probGridMap_perfect.txt', realMapSize, res=0.1)
+    input_map = Map('/content/Controls_Colab/PID_Colab/probGridMap_perfect.txt', realMapSize, res=0.1)
     image, dataset, status, vel, steering = sim.collectData(True, begin=True)
 
     pf = ParticleFilter(input_map, num_of_particles, dataset[0])
