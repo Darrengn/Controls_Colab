@@ -218,7 +218,7 @@ class PathSimulator():
         self.waypoints = {}
 
         for i, (x, y, heading) in enumerate(self.planned_path):
-            self.waypoints[i+1] = (x, y, heading, 1, 1)
+            self.waypoints[i+1] = (x, y, -pi/2, 1, 1)
 
         self.next = 1 # waypoint number
         self.length = len(self.waypoints)
