@@ -88,7 +88,7 @@ class Simulation():
         self.sim.create_env(
             env_config=ENV_PATH,
             GUI=False,
-            planned_path=planned_path
+            planned_path=[[100,100], [200,200], [400,300]]
         )
 
         # Set simulation response time
