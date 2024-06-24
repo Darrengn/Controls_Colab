@@ -23,6 +23,7 @@ from math import *
 import matplotlib.pyplot as plt
 from IPython.display import clear_output
 from time import time
+from util import World2Grid
 
 ######### This section to load and store the simulation configuration #########
 
@@ -91,6 +92,11 @@ class Simulation():
             [-1.95, -1.95], [1.95, -1.95], [1.95, 1.95], [0.0, 1.95],
             [0.0, 0.0]
         ]
+
+        map_size = self.sim.get_env_info()["map_size"]
+        res = 0.1
+        grid_size = int(map_size/res)
+        planned_path = [World2Grid(pt, map_size, grid_size) for pt in planned_path]
 
         self.sim.create_env(
             env_config=ENV_PATH,
