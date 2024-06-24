@@ -211,7 +211,7 @@ class PathSimulator():
         for i in range(len(self.planned_path)-1):
             x1, y1 = self.planned_path[i]
             x2, y2 = self.planned_path[i+1]
-            angle = atan2(y2-y1, x2-x1)
+            angle = atan2((500-y2)-(500-y1), x2-x1)
             heading.append(angle)
 
         heading.append(heading[-1])
@@ -237,7 +237,8 @@ class PathSimulator():
         self.waypoints = {}
 
         for i, (x, y, heading) in enumerate(self.planned_path):
-            self.waypoints[i+1] = (x, y, heading, 1, 1)
+            x_real, y_real = Grid2World((x, 500-y), 5.0, 500, 0.01)
+            self.waypoints[i+1] = (x_real, y_real, heading, 0, 1)
 
         print('Waypoints:', self.waypoints)
 
