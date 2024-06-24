@@ -86,17 +86,17 @@ class Simulation():
         planned_path = np.load('/content/Controls_Colab/PID_Colab/trajectory.npy')
         planned_path = [(x, y) for x, y in planned_path]
 
-        planned_path = [
-            [0.0, -1.95], [-1.95, -1.95], [-1.95, 1.95], [1.95, 1.95],
-            [1.95, -1.95], [0.0, -1.95], [0.0, 1.95], [-1.95, 1.95],
-            [-1.95, -1.95], [1.95, -1.95], [1.95, 1.95], [0.0, 1.95],
-            [0.0, 0.0]
-        ]
+        # planned_path = [
+        #     [0.0, -1.95], [-1.95, -1.95], [-1.95, 1.95], [1.95, 1.95],
+        #     [1.95, -1.95], [0.0, -1.95], [0.0, 1.95], [-1.95, 1.95],
+        #     [-1.95, -1.95], [1.95, -1.95], [1.95, 1.95], [0.0, 1.95],
+        #     [0.0, 0.0]
+        # ]
 
-        map_size = 5.0
-        res = 0.01
-        grid_size = int(map_size/res)
-        planned_path = [World2Grid(pt, map_size, grid_size) for pt in planned_path]
+        # map_size = 5.0
+        # res = 0.01
+        # grid_size = int(map_size/res)
+        # planned_path = [World2Grid(pt, map_size, grid_size) for pt in planned_path]
 
         self.sim.create_env(
             env_config=ENV_PATH,
@@ -118,9 +118,11 @@ class Simulation():
             sensors=SENSORS
         )
 
+        starting_point = World2Grid(planned_path[0], 5.0, 500, 0.01)
+
         self.car.place_car(
             self.sim.floor,
-            xy_coord=(0.0, 0.0)
+            xy_coord=starting_point,
         )
 
         # Initialize path simulator
