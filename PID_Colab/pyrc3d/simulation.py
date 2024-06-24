@@ -250,6 +250,8 @@ class Sim():
         rgb_array = np.reshape(rgb_array, (side_length, side_length, 4))
         rgb_array = rgb_array[:, :, :3]
 
+        print(rgb_array.shape)
+
         # If self.planned_path is not None, draw the planned path on the image using OpenCV
         if self.planned_path is not None:
             for i in range(len(self.planned_path) - 1):
