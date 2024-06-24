@@ -286,7 +286,7 @@ class PathSimulator():
             self.next += 1
             self.time_spent = 0.0
 
-        velocity = 1
+        velocity = 50
 
         return velocity, steering
 
