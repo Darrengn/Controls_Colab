@@ -270,7 +270,7 @@ class PathSimulator():
         distance_to_waypoint = np.hypot(dx, dy)
         if distance_to_waypoint < 0.05:
             self.next += 1
-        velocity = min(self.max_velocity, cross_track_error) / self.max_velocity
+        velocity = max(self.cross_track_error, 0.2)
         velocity = np.clip(velocity, -1, 1)  # Limit velocity to [-1, 1]
 
         print('Waypoint:', self.next, 'Distance:', round(distance_to_waypoint, 2),'Velocity:', round(velocity, 2), 'Steering:', round(steering, 2))
