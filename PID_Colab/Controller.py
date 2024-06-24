@@ -358,7 +358,7 @@ def main(resolution, log_prior=0.0,
 
     while True:
         # Get latest data
-        realMap, dataset, status = ogm.sim.collectData(True)
+        realMap, dataset, status, _, _ = ogm.sim.collectData(True)
 
         if status == -1:
             plt.clf()
