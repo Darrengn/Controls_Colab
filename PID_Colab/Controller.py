@@ -1,386 +1,311 @@
 # ------------------------------------------------------------------
-# Binary Bayes Filter implementation of Occupancy Grid Mapping
-# (OGM) | Status: COMPLETED (Version 4)
-#       | Contributors: Jeffrey Chen
+# 2D Particle Filter Implementation with PyBullet
+# (PF2D) | Status: COMPLETED (Version 2)
+#        | Contributors: Jeffrey
 #
-# Update from previous version:
-# - Enable to display a ray cone in grid map based on the user's choices.
-# - Tuned refresh rate and made some modifications to increase running speed.
-# - Fixed some bugs.
-#
-# Key assumptions in OGM:
-# - Robot positions (states) are known (i.e: its path is known).
-# - Occupancy of individual cells is independent.
-# - The area that corresponds to each cell is either
-#   completely free or occupied.
-# - Each cell is a binary random variable that models
-#   the occupancy:
-#       p(m_ij = 1) = p(m_ij) := probability of cell ij is occupied
-# - The world is static (obstacles are assumed not moving)
+# Key assumptions in PF:
+# - Robot positions (states) are known
+# - Landmark positions are known
+# - There is sensor and motion noise.
+# - Particles are initially generated with uniform distribution.
+# - The world is static (obstacles are assumed to be not moving)
 #
 # Problem setting:
-#     Given sensor data z and poses (states) x of the
-#     robot at time step t, estimate the map:
-#         p(m | z, x)
+#     Given measurement data z, robot state x, and control input u,
+#     find the estimated state bel(x_t)
 # ------------------------------------------------------------------
 
 import matplotlib.pyplot as plt
+import matplotlib.colors as colors
+import matplotlib.cm as cmx
 import numpy as np
-from Path_Sim import Simulation
-from math import *
-from decimal import *
+import cv2
 from IPython.display import clear_output
-from time import time
-from copy import deepcopy
-from util import World2Grid, Grid2World
-
-class OGM():
-    """
-    A class used to implement OGM algorithm, provide visualization,
-        and output a probabilistic grid map.
-
-    Attributes:
-        sim (Simulation): Simulation of environment and robot.
-        res (float): Grid map resolution.
-        log_prior (float): Prior log-odd value.
-        l_occ (float): Occupancy log-odd value.
-        l_free (float): Unoccupancy log-odd value.
-        log_t (numpy 2D array): Array of log odd scores for all grids.
-        gridMapSize (int): Side length (number of grids) of the grid map.
-        realMapSize (float): Side length of the real map.
-        probGridMap (numpy 2D array): Probabilistic grid map.
-        plotMap (numpy 2D array): Grid map with colored ray cone for plotting.
-    """
+from math import *
+from time import time, sleep
+from Path_Sim import Simulation
+from util import World2Grid, Grid2World, Body2World
+from utilities.timings import Timings
 
 
-    def __init__(self, res, log_prior):
-        """
-        Constructor of OGM to initialize occupancy grid mapping.
-
-        Parameters:
-            res (float): Grid map resolution.
-            log_prior (float): Prior log-odd value.
-        """
-        
-        self.sim = Simulation()
+class Map():
+    def __init__(self, map_file: str, realMapSize, res=0.1):
+        self.map = np.loadtxt(map_file, dtype=float)
+        self.landmarks = [(2.5/2., 2.5/2.),   (-2.5/2., 2.5/2.),
+                          (-2.5/2., -2.5/2.), (2.5/2., -2.5/2.)]
+        scale_idx = 3
+        self.map = cv2.resize(self.map,
+                              dsize=(50*scale_idx, 50*scale_idx),
+                              interpolation=cv2.INTER_NEAREST)
+        res /= scale_idx
+        self.realMapSize = realMapSize
+        self.gridMapSize = int(self.realMapSize/res)
         self.res = res
-        self.realMapSize = self.sim.sim.get_env_info()["map_size"]
-        self.gridMapSize = int(self.realMapSize/self.res)
 
-        # Set log-odds values
-        self.log_prior = log_prior
-        self.l_occ = log(0.55/0.45)
-        self.l_free = log(0.45/0.55)
-        self.log_t = np.zeros((self.gridMapSize, self.gridMapSize))
+    def World2Grid(self, point):
+        return World2Grid(point, self.realMapSize, self.gridMapSize, self.res)
 
-        # Initialize the probabilistic grid map
-        self.probGridMap = 0.5 * np.ones((self.log_t.shape[0], self.log_t.shape[1]))
-        self.plotMap = None
+class ParticleFilter():
+    class Particle():
+        def __init__(self, x, y, yaw, weight=0):
+            self.pos = np.array([x, y])
+            self.yaw = yaw
+            self.weight = weight
 
+    class Robot():
+        def __init__(self, robot_pose):
+            x, y, yaw = robot_pose
+            self.pos = np.array([x, y])
+            self.yaw = yaw
 
-    def mapping(self, dataset):
-        """
-        Main function to operate occupancy grid mapping. It updates the log odd
-            scores and occupancy probabilities for the percepted grids.
+    def __init__(self, input_map: Map, num_particles: int, robot_pose):
+        ''' 
+        The constructor initializes certain parameters and the robot on the map, 
+        while updating the robot and particle states and weights after a key event.
 
-        Parameters:
-            dataset (tuple): Robot's current pose and the array of the end
-                points for all laser rays.
+        Initializes:
+             - robot position 
+             - motion noise 
+             - measurement noise 
+             - landmark positions 
+             - number of particles
+        '''
+        self.map = input_map
+
+        # Initialize robot
+        self.robot = self.Robot(robot_pose)
+
+        # motion and measurement noise
+        self.motion_noise = 0.02
+        self.turn_noise = 0.02
+        self.bearing_noise = 0.02
+        self.distance_noise = 0.5
+
+        # position of landmarks
+        self.landmarks = np.array(self.map.landmarks)
+
+        # Initialize particles
+        self.num_particles = num_particles
+        self.particles = []
+        self.weights = np.ones(self.num_particles) / self.num_particles
+
+        weight = 1 / self.num_particles
+        Xs = np.random.uniform(-2.45, 2.45, self.num_particles)
+        Ys = np.random.uniform(-2.45, 2.45, self.num_particles)
+        yaws = np.random.uniform(0, 2*pi, self.num_particles)
+        self.particles = np.array([self.Particle(Xs[i], Ys[i], yaws[i], weight)
+                                   for i in range(self.num_particles)])
         
-        Returns:
-            None
-        """
+    def prediction_step(self, new_robot_pose):
+        '''
+        This method performs the prediction step and changes the state of the particles. 
+        '''
+        new_robot_pos = np.array(new_robot_pose[0:2])
+        # Find out the change in robot's pose
+        dx, dy = new_robot_pos - self.robot.pos
+        d_yaw = new_robot_pose[2] - self.robot.yaw
+        # Update robot's current pose
+        self.robot.pos, self.robot.yaw = new_robot_pos, new_robot_pose[2]
 
-        pose, hitPoints = dataset[0], dataset[1]
-        rayConeGrids_World, Zt, measPhi, rayConeEnds_World = self.perceptedCells(pose, hitPoints)
-        self.plotMap = deepcopy(self.probGridMap)
-        self.rayConeEnds_Grid = \
-            [World2Grid(i, self.realMapSize, self.gridMapSize, self.res) for i in rayConeEnds_World]
+        # Perform control on all particles based on the robot's motion
+        turn_noises = np.random.normal(0, self.turn_noise, self.num_particles)
+        motion_noises_x = np.random.normal(0, self.motion_noise, self.num_particles)
+        motion_noises_y = np.random.normal(0, self.motion_noise, self.num_particles)
+        for i in range(self.num_particles):
+            particle = self.particles[i]
+            particle.pos[0] += dx + motion_noises_x[i]
+            particle.pos[1] += dy + motion_noises_y[i]
+            particle.yaw = (particle.yaw + pi + d_yaw + turn_noises[i]) % (2*pi) - pi
 
-        # Update the log odds for all cells with the perceptual field of lidar
-        for grid in rayConeGrids_World:
-            grid_coord = World2Grid(grid, self.realMapSize, self.gridMapSize,
-                                    self.res)
-            i, j = grid_coord[1], grid_coord[0]
+    def update_step(self):
+        '''
+        This method performs the update step and updates the weights of all particles.
 
-            self.log_t[i][j] += \
-                self.inv_sensor_model(pose, grid, Zt, self.sim.Z_max, measPhi) \
-                - self.log_prior
-            
-            # Convert to the occupancy probability
-            P_mi = 1 - 1/(1+np.exp(self.log_t[i][j]))
+        Measures:
+            - Distance between robot and each landmark with measurement noise (Gaussian)
+            - Bearing between robot's orientation and each landmark with measurement noise (Gaussian)
+            - Distance between each particle and each landmark
+            - Bearing between each particle's orientation and each landmark
+            - Joint probability of each particle based on the above measurements
+        '''
+        def calc_bearing(landmark, target):
+            vec_t2l = np.array(landmark) - target.pos
+            theta_l2x = np.arctan2(vec_t2l[1], vec_t2l[0])
+            theta_l2y = theta_l2x - pi/2
+            if theta_l2x >= pi/2 or theta_l2x < -pi/2:
+                theta_l2y %= pi
+            bearing = theta_l2y - target.yaw
+            if bearing > pi:
+                bearing -= 2*pi
+            elif bearing < -pi:
+                bearing += 2*pi
 
-            # Update the probabilistic grid map based on the latest log odds
-            # When the grid is likely to be occupied
-            if (P_mi > 0.5):
-                self.probGridMap[i][j] = 0 # set to zero to plot in black
-            # When the grid's status is likely undetermined
-            elif (P_mi == 0.5):
-                self.probGridMap[i][j] = 0.5 # set to 0.5 to plot in grey
-            # When the grid is likely to be free
-            else:
-                self.probGridMap[i][j] = 1 # set to one to plot in white
-
-            # Color the ray cone
-            self.plotMap[i][j] = 0.7
-
-
-    def bresenham(self, x_start, y_start, x_end, y_end):
-        """
-        The function to determine the grids that a given line passes by,
-            based on the Bresenham's line algorithm. All coordinates are in the
-            world frame.
-
-        Parameters:
-            x_start (float): X coordinate of the starting point.
-            y_start (float): Y coordinate of the starting point.
-            x_end (float): X coordinate of the end point.
-            y_end (float): Y coordinate of the end point.
+            return bearing
         
-        Returns:
-            numpy 2D array: Array of the grids passed by the line,
-                represented in their world coordinates.
-        """
+        num_landmarks = self.landmarks.shape[0]
 
-        # Normalize the grid side length to 1
-        scale = Decimal(str(1.0)) / Decimal(str(self.res))
-        x_start, x_end = Decimal(str(x_start))*scale, Decimal(str(x_end))*scale
-        y_start, y_end = Decimal(str(y_start))*scale, Decimal(str(y_end))*scale
+        # Calculate distance and bearing measurements to all landmarks
+        robot_pos_pile = np.tile(self.robot.pos, (num_landmarks, 1))
+        dists_r2l = np.linalg.norm(robot_pos_pile-self.landmarks, axis=1) \
+                  + np.random.normal(0, self.distance_noise, num_landmarks)
+        bear_noise = np.random.normal(0, self.bearing_noise, num_landmarks)
+        bearing_rnl = np.array([calc_bearing(self.landmarks[i], self.robot) + bear_noise[i]
+                                for i in range(num_landmarks)])
+
+        # Calculate each particle's relative distance and bearing measurements to all landmark
+        dist_meas = np.array(
+            [np.linalg.norm(particle.pos-landmark)
+             for particle in self.particles for landmark in self.landmarks]
+        ).reshape(self.num_particles, num_landmarks)
+        bear_meas = np.array(
+            [calc_bearing(landmark, particle)
+             for particle in self.particles for landmark in self.landmarks]
+        ).reshape(self.num_particles, num_landmarks)
         
-        # Check if slope > 1
-        dy0 = y_end - y_start
-        dx0 = x_end - x_start
-        steep = abs(dy0) > abs(dx0)
-        if steep:
-            x_start, y_start = y_start, x_start
-            x_end, y_end = y_end, x_end
+        # Calculate the likelihood/weight of each particle based on distance and bearing measurements (joint probability (product) of two 1D Gaussian pdfs)
+        denom = 2 * pi * self.distance_noise * self.bearing_noise
+        weights = np.array(
+            [(np.exp(-((dists_r2l[j]-dist_meas[i,j])**2)/(2*(self.distance_noise**2))) \
+              * np.exp(-((bearing_rnl[j]-bear_meas[i,j])**2)/(2*(self.bearing_noise**2))))
+             for i in range(self.num_particles) for j in range(num_landmarks)]
+        ).reshape(self.num_particles, num_landmarks)
+        weights = np.prod(weights/denom, axis=1)
 
-        # Change direction if x_start > x_end
-        if x_start > x_end:
-            x_start, x_end = x_end, x_start
-            y_start, y_end = y_end, y_start
-
-        # Determine the moving direction for y
-        if y_start <= y_end:
-            y_step = Decimal(str(1))
+        weight_sum = np.sum(weights)
+        if weight_sum != 0.0:
+            self.weights = weights / weight_sum # normalized weights
         else:
-            y_step = Decimal(str(-1))
-        
-        dx = x_end - x_start
-        dy = abs(y_end - y_start)
-        error = Decimal(str(0.0))
-        d_error = dy / dx
-        step = Decimal(str(1.0))
-        yk = y_start
-
-        perceptedGrids = []
-
-        # Iterate over the grids from the adjusted x_start to x_end
-        for xk in np.arange(x_start, x_end+step, step):
-            if steep:
-                new_x = yk
-                new_y = xk
-            else:
-                new_x = xk
-                new_y = yk
-            
-            # Scale back to the original resolution and append to the list
-            perceptedGrids.append((float(new_x/scale), float(new_y/scale)))
-
-            error += d_error
-            if error >= 0.5:
-                yk += y_step
-                error -= step
-
-        return np.array(perceptedGrids)
-
-
-    def perceptedCells(self, xt, hitPoints):
-        """
-        The function to determine the grids within the ray cone,
-            the range measurement of each ray, and
-            the relative angle between the robot and each ray.
-
-        Parameters:
-            xt (array): Robot pose [x, y, theta].
-            hitPoints (array): Array of the end points for all laser rays.
-        
-        Returns:
-            rayConeGrids_World (numpy 2D array): Array of the percepted grids
-                in world coordinates.
-            Zt (numpy 2D array): Array of range measurements for all rays.
-            measPhi (numpy 2D array): Array of relative angles between robot
-                and Lidar rays.
-            rayConeEnds_World (list): Array of the rays' end points.
-        """
-
-        rayConeGrids_World = np.array([(0, 0)])
-        Zt = np.zeros(hitPoints.shape[0])
-        measPhi = np.zeros(hitPoints.shape[0])
-        rayConeEnds_World = []
-
-        # Iterate thru each ray to collect data
-        for i in range(hitPoints.shape[0]):
-            point = hitPoints[i]
-
-            # When there's no hit for a ray, determine its end point (world)
-            if np.isnan(point[0]):
-                # Relative angle between robot and the ray
-                # (Range: RAY_START_ANG - RAY_END_ANG)
-                theta_body = Decimal(str(self.sim.rayStartAng)) \
-                    + (Decimal(str(self.sim.beta)) * Decimal(str(i)))
-                # Convert to range: +- (RAY_END_ANG - RAY_START_ANG)/2 [+: ccw]
-                ray_robot_ang = Decimal(str(pi/2)) - theta_body
-
-                x0 = Decimal(str(self.sim.Z_max)) \
-                    * Decimal(str(cos(ray_robot_ang + Decimal(str(xt[2]))))) \
-                    + Decimal(str(xt[0]))
-                y0 = Decimal(str(self.sim.Z_max)) \
-                    * Decimal(str(sin(ray_robot_ang + Decimal(str(xt[2]))))) \
-                    + Decimal(str(xt[1]))
-                point = (float(x0), float(y0))
-
-            # Discard the invalid point
-            if (abs(point[0]) >= self.realMapSize/2.0) or \
-               (abs(point[1]) >= self.realMapSize/2.0):
-                continue
-
-            Zt[i] = np.sqrt((point[0]-xt[0])**2 + (point[1]-xt[1])**2)
-            measPhi[i] = np.arctan2(point[1]-xt[1], point[0]-xt[0]) - xt[2]
-            rayConeEnds_World.append(point)
-            
-            # Determine the grids passed by the ray
-            ray_grids = self.bresenham(xt[0], xt[1], point[0], point[1])
-            
-            rayConeGrids_World = np.concatenate((rayConeGrids_World, ray_grids),
-                                                 axis=0)
-        
-        rayConeGrids_World = np.unique(rayConeGrids_World[1:], axis=0)
-
-        return rayConeGrids_World, Zt, measPhi, rayConeEnds_World
-
-
-    def inv_sensor_model(self, xt, grid_mi, Zt, Z_max, measPhi):
-        """
-        The function to implement the inverse sensor model to update
-            the log odd score for each grid.
-
-        Parameters:
-            xt (array): Robot pose [x, y, theta].
-            grid_mi (tuple): World coordinate of grid center.
-            Zt (numpy 2D array): Array of range measurements for all rays.
-            Z_max (float): Maximum measurement range of lidar.
-            measPhi (numpy 2D array): Array of relative angles between robot
-                and Lidar rays.
-        
-        Returns:
-            float: Log odd score update.
-        """
-
-        # Distance between robot and grid center
-        r = np.sqrt((grid_mi[0]-xt[0])**2 + (grid_mi[1]-xt[1])**2)
-        # Relative angle between robot and grid center
-        phi = np.arctan2(grid_mi[1]-xt[1], grid_mi[0]-xt[0]) - xt[2]
-        # Index of the ray that corresponds to this measurement
-        k = np.argmin(abs(np.subtract(phi, measPhi)))
-
-        # Determine the update of log odd score for this grid
-        if ((r > np.minimum(Z_max, Zt[k]+self.res/2.0)) or 
-            (np.abs(phi-measPhi[k]) > self.sim.beta/2.0)):
-            
-            return self.log_prior
-
-        elif ((Zt[k] < Z_max) and (np.abs(r-Zt[k]) < self.res/2.0*np.sqrt(2))):
-            return self.l_occ
-
-        elif (r < Zt[k]):
-            return self.l_free
-        
-        else:
-            return 0.0
-
-
-    def plotGridMap(self):
-        """
-        The function to plot the probabilistic grid map.
-            Black: the grid is occupied.
-            White: the grid is free.
-            Grey: Undetermined area.
-
-        Parameters:
-            None
-        
-        Returns:
-            None
-        """
-
-        gridMap = self.probGridMap
-        plt.imshow(gridMap, cmap='gray', vmin = 0, vmax = 1, origin='lower')
-        plt.title('Final Grid Map')
-        plt.show()
-
-
-    def saveGridMap(self, path: str=None):
-        """
-        The function to save the probabilistic grid map to a text file.
-        Default (path=None): save to the current directory.
-
-        Parameters:
-            path (str): Path of the directory and filename.
-        
-        Returns:
-            text file (.txt): File saving the array of occupancy probabilities.
-        """
-
-        if path != None:
-            return np.savetxt(path, self.probGridMap)
-        return np.savetxt("probGridMap.txt", self.probGridMap)
-
-
-def main(resolution, log_prior=0.0,
-         save_grid_map=False, path: str=None):
-    """
-    The function to run the program, plot the grid map, and save the
-        grid map as a text file if necessary.
-
-    Parameters:
-        resolution (float): Grid map resolution.
-        log_prior (float): Prior log-odd value.
-        save_grid_map (bool): True = save to a text file, False otherwise.
-        path (str): Path of the directory and filename. 
-    Returns:
-        None
-    """
-
-    t0 = time()
+            self.weights = weights
     
-    ogm = OGM(resolution, log_prior)
+    def resampling(self):
+        '''
+        This method performs stratified resampling of particles with the latest weights.
 
-    while True:
-        # Get latest data
-        realMap, dataset, status, _, _ = ogm.sim.collectData(True)
+        Reference: Probabilistic Robotics, Ch.4, page 86
+        '''
+        new_particles = []
+        new_weight = 1 / self.num_particles
+        r = np.random.uniform(0, new_weight, 1)
+        c = self.weights[0]
+        i = 0
+        count = 0
 
-        if status == -1:
-            plt.clf()
-            clear_output(wait=True)
-            break
+        for m in range(self.num_particles):
+            u = r + (m-1)*new_weight
+            while u > c:
+                i += 1
+                c += self.weights[i]
 
-        if realMap is not None:
-            print('Mapping...')
-            clear_output(wait=True)
-            plt.imshow(realMap)
-            plt.title('Physical World')
+            x, y = self.particles[i].pos
+            if abs(x) > self.map.realMapSize/2 or abs(y) > self.map.realMapSize/2:
+                while np.abs(x) > self.map.realMapSize/2:
+                    x = np.random.normal(self.robot.pos[0], 1, 1)
+                    x = x[0]
+                while np.abs(y) > self.map.realMapSize/2:
+                    y = np.random.normal(self.robot.pos[1], 1, 1)
+                    y = y[0]
+                count += 1
+                
+            new_particles.append(self.Particle(x, y, self.particles[i].yaw, new_weight))
+
+        self.particles = np.array(new_particles)
+        self.weights = new_weight * np.ones(self.num_particles)
+
+        # if count != 0:
+        #     print("outliers resampled:", count)
+            
+    def visualize(self, image, end=False):
+        plt.clf()
+        clear_output(wait=True)
+
+        cmap = plt.get_cmap('rainbow', self.num_particles)
+        cNorm  = colors.Normalize(vmin=0, vmax=0.5)
+        scalarMap = cmx.ScalarMappable(norm=cNorm,cmap=cmap)
+
+        plt.imshow(self.map.map, cmap='gray', vmin=0, vmax=1, origin='lower')
+        robot_pos = self.map.World2Grid((self.robot.pos[0], self.robot.pos[1]))
+        plt.scatter(robot_pos[0], robot_pos[1],
+                    s=180, marker='o', color='b', edgecolors='r')
+        plt.arrow(robot_pos[0], robot_pos[1],
+                  18*np.cos(self.robot.yaw), 18*np.sin(self.robot.yaw),
+                  head_width=3, head_length=7, length_includes_head=True,
+                  color='b', linewidth=2)
         
+        max_weight = np.max(self.weights)
+        max_point_idx = np.argwhere(self.weights == max_weight).flatten()[0]
+        for i in range(self.num_particles+1):
+            if i == self.num_particles:
+                particle = self.particles[max_point_idx]
+                curr_weight = max_weight
+            elif i == max_point_idx:
+                continue
+            else:
+                particle = self.particles[i]
+                curr_weight = self.weights[i]
+
+            colorVal = scalarMap.to_rgba(curr_weight)
+            particle_pos = self.map.World2Grid((particle.pos[0], particle.pos[1]))
+            plt.scatter(particle_pos[0], particle_pos[1],
+                        marker='o', s=3, color=colorVal, cmap=scalarMap)
+            plt.arrow(particle_pos[0], particle_pos[1],
+                      7*np.cos(particle.yaw), 7*np.sin(particle.yaw),
+                      head_width=1.5, head_length=3, length_includes_head=True,
+                      color=colorVal, linewidth=0.75)
+            
+        plt.title('Real-time Map')
+        plt.colorbar(scalarMap, label='Particle Weight', orientation='vertical', shrink=0.9)
+        x, y = self.map.map.shape
+        plt.xlim([-0.5, x-0.5])
+        plt.ylim([0, y])
+
         #### For running on Colab
         plt.show(block=True)
         #### For running on local computer
-        # plt.show(block=False)
-        # plt.pause(0.001)
+        # if end:
+        #     plt.show(block=True)
+        # else:
+        #     plt.show(block=False)
+        #     plt.pause(0.0001)
 
-    print('Total run time:', floor((time()-t0)/60), 'min',
-          round((time()-t0)%60, 1), 'sec.')
+def main():
+    t0 = time()
+    num_of_particles = 75
+
+    sim_FPS = 0.6
+    path_sim_time = Timings(sim_FPS)
+
+    sim = Simulation()
+    realMapSize = sim.sim.get_env_info()["map_size"]
+    input_map = Map('/content/OGM4Colab/Particle_Filter_Colab/probGridMap_perfect.txt', realMapSize, res=0.1)
+    image, dataset, status, vel, steering = sim.collectData(True, begin=True)
+
+    pf = ParticleFilter(input_map, num_of_particles, dataset[0])
+    pf.visualize(image) # display the initial particles
+
+    time_to_plot = False
+
+    while True:
+        image, dataset, status, vel, steering = sim.collectData(True)
+
+        if status == -1:
+            print('Total run time:', floor((time()-t0)/60), 'min',
+                  round((time()-t0)%60, 1), 'sec.')
+            pf.visualize(image, end=True)
+            break
+
+        if path_sim_time.update_time():
+            time_to_plot = True
+
+        # Perform update once a movement is completed
+        pf.prediction_step(dataset[0])
+        pf.update_step()
+        if np.sum(pf.weights) == 0.0:
+            continue
+        if time_to_plot:
+            pf.visualize(image) # particles move based on control u
+            time_to_plot = False
+        pf.resampling()
 
 
-if __name__ == '__main__':
-    res = 0.1
-    main(res)
+if __name__ == "__main__":
+    main()
