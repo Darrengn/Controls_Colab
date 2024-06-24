@@ -366,6 +366,7 @@ def main(resolution, log_prior=0.0,
             break
 
         if realMap is not None:
+            print('Mapping...')
             clear_output(wait=True)
             plt.imshow(realMap)
             plt.title('Physical World')
