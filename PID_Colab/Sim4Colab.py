@@ -93,8 +93,8 @@ class Simulation():
             [0.0, 0.0]
         ]
 
-        map_size = self.sim.get_env_info()["map_size"]
-        res = 0.1
+        map_size = 5.0
+        res = 0.01
         grid_size = int(map_size/res)
         planned_path = [World2Grid(pt, map_size, grid_size) for pt in planned_path]
 
