@@ -88,7 +88,7 @@ class Simulation():
         )
 
         self.sim.draw_planned_path(
-            [[100, 100], [200, 200], [400, 300]]
+            [(100, 100), (200, 200), (400, 300)]
         )
 
         # Set simulation response time
