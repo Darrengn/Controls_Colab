@@ -86,18 +86,19 @@ class Simulation():
         planned_path = np.load('/content/Controls_Colab/PID_Colab/trajectory.npy')
         planned_path = [(x, y) for x, y in planned_path]
 
-        planned_path = [
-            [0.0, -1.95], [-1.95, -1.95], [-1.95, 1.95], [1.95, 1.95],
-            [1.95, -1.95], [0.0, -1.95], [0.0, 1.95], [-1.95, 1.95],
-            [-1.95, -1.95], [1.95, -1.95], [1.95, 1.95], [0.0, 1.95],
-            [0.0, 0.0]
-        ]
+        # planned_path = [
+        #     [0.0, -1.95], [-1.95, -1.95], [-1.95, 1.95], [1.95, 1.95],
+        #     [1.95, -1.95], [0.0, -1.95], [0.0, 1.95], [-1.95, 1.95],
+        #     [-1.95, -1.95], [1.95, -1.95], [1.95, 1.95], [0.0, 1.95],
+        #     [0.0, 0.0]
+        # ]
 
-        map_size = 5.0
-        res = 0.01
-        grid_size = int(map_size/res)
-        planned_path_grid = [World2Grid(pt, map_size, grid_size, res) for pt in planned_path]
-        planned_path_grid = [(x, 500-y) for x, y in planned_path_grid]
+        # map_size = 5.0
+        # res = 0.01
+        # grid_size = int(map_size/res)
+        # planned_path_grid = [World2Grid(pt, map_size, grid_size, res) for pt in planned_path]
+        # planned_path_grid = [(x, 500-y) for x, y in planned_path_grid]
+        planned_path_grid = [(x, y) for x, y in planned_path]
 
         self.sim.create_env(
             env_config=ENV_PATH,
@@ -233,10 +234,10 @@ class PathSimulator():
             # 7: (0.0, 0.0, -pi/2, -1, 1),
         }
 
-        # self.waypoints = {}
+        self.waypoints = {}
 
-        # for i, (x, y, heading) in enumerate(self.planned_path):
-        #     self.waypoints[i+1] = (x, y, -pi/2, 1, 1)
+        for i, (x, y, heading) in enumerate(self.planned_path):
+            self.waypoints[i+1] = (x, y, heading, 1, 1)
 
         self.next = 1 # waypoint number
         self.length = len(self.waypoints)
