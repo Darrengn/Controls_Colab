@@ -16,7 +16,6 @@ from pyrc3d.agent import Car
 from pyrc3d.simulation import Sim
 from pyrc3d.sensors import Lidar
 from utilities.timings import Timings
-from PID_controller import PID
 
 import numpy as np
 from math import *
@@ -24,6 +23,21 @@ import matplotlib.pyplot as plt
 from IPython.display import clear_output
 from time import time
 from util import World2Grid, Grid2World
+
+class PID:
+    def __init__(self, kp=1.0, ki=0.0, kd=0.0):
+        self.kp = kp
+        self.ki = ki
+        self.kd = kd
+        self.previous_error = 0.0
+        self.integral = 0.0
+
+    def control(self, error, delta_time):
+        self.integral += error * delta_time
+        derivative = (error - self.previous_error) / delta_time
+        self.previous_error = error
+        return self.kp * error + self.ki * self.integral + self.kd * derivative
+
 
 ######### This section to load and store the simulation configuration #########
 
@@ -215,28 +229,11 @@ class PathSimulator():
         heading.append(heading[-1])
         self.planned_path = [(x, y, h) for (x, y), h in zip(self.planned_path, heading)]
 
-        # move: 1: forward, -1: backward, 0: stop
-        # turn: 1: right,   -1: left
-        # (x, y, heading, turn, move)
-        # self.waypoints = {
-        #     1: (0.0, -1.95, -pi/2, 1, 1),  2: (-1.95, -1.95, pi, 1, 1),
-        #     3: (-1.95, 1.95, pi/2, 1, 1), 4: (1.95, 1.95, 0.0, 1, 1),
-        #     5: (1.95, -1.95, -pi/2, 1, 1), 6: (0.0, -1.95, pi, 1, 1),
-        #     7: (0.0, 1.95, pi/2, 1, 1), 8: (-1.95, 1.95, pi, -1, 1),
-        #     9: (-1.95, -1.95, -pi/2, -1, 1), 10: (1.95, -1.95, 0.0, -1, 1),
-        #     11: (1.95, 1.95, pi/2, -1, 1), 12: (0.0, 1.95, pi, -1, 1),
-        #     13: (0.0, 0.0, -pi/2, -1, 1),
-        #     # 1: (0.0, 1.95, pi/2, -1, 1), 2: (-1.95, 1.95, pi, -1, 1),
-        #     # 3: (-1.95, -1.95, -pi/2, -1, 1), 4: (1.95, -1.95, 0.0, -1, 1),
-        #     # 5: (1.95, 1.95, pi/2, -1, 1), 6: (0.0, 1.95, pi, -1, 1),
-        #     # 7: (0.0, 0.0, -pi/2, -1, 1),
-        # }
-
         self.waypoints = {}
 
         for i, (x, y, heading) in enumerate(self.planned_path):
             x_real,y_real = Grid2World((x, 500-y), 5.0, 500, 0.01)
-            self.waypoints[i+1] = (x_real, y_real, -pi/2, 1, 1)
+            self.waypoints[i+1] = (x_real, y_real, heading)
 
         print('Waypoints:', self.waypoints)
 
@@ -246,62 +243,37 @@ class PathSimulator():
         self.ifTurn = False
 
     def navigate(self, x, y, yaw):
-        if self.next > len(self.waypoints):
-            return float('inf'), float('inf')
+        if self.next > self.length:
+            return 0, 0  # No more waypoints to follow
 
-        next_x, next_y, heading, turn, move = self.waypoints[self.next]
-        self.dist2next = np.linalg.norm(
-            np.array((next_x, next_y)) - np.array((x, y)))
+        waypoint = self.waypoints[self.next]
+        waypoint_x, waypoint_y, waypoint_heading = waypoint
 
-        # Turn
-        if self.ifTurn == False:
-            if turn == 0:
-                self.ifTurn = True
-                return 0.0, 0.0
+        # Calculate cross-track error
+        dx = waypoint_x - x
+        dy = waypoint_y - y
+        cross_track_error = np.hypot(dx, dy)
 
-            if abs(heading - yaw) <= 0.15:
-                self.ifTurn = True
-                self.steering = 0.0
-                return 0.0, 0.0
+        # Calculate heading error
+        heading_error = waypoint_heading - yaw
+        if heading_error > pi:
+            heading_error -= 2 * pi
+        elif heading_error < -pi:
+            heading_error += 2 * pi
 
-            if turn == -1: # left
-                self.steering = -1.0
-            elif turn == 1: # right
-                self.steering = 1.0
+        # Use PID control for steering
+        delta_time = 1 / self.sim_fps
+        steering = self.pid.control(heading_error, delta_time)
+        steering = np.clip(steering, -1, 1)  # Limit steering to [-1, 1]
 
-            return 15.0, self.steering
-
-        # Move
-        if self.dist2next >= 0.2:
-            self.setVel(move)
-            self.setSteer(yaw, heading)
-            return self.velocity, self.steering
-        else:
+        # Proportional control for velocity
+        distance_to_waypoint = np.hypot(dx, dy)
+        if distance_to_waypoint < 1.0:
             self.next += 1
-            print('Moving to next waypoint [', self.next-1, '/', self.length, '].')
-            self.ifTurn = False
-            self.velocity, self.steering = 0.0, 0.0
-            return self.velocity, self.steering
+        velocity = min(self.max_velocity, cross_track_error) / self.max_velocity
+        velocity = np.clip(velocity, -1, 1)  # Limit velocity to [-1, 1]
 
-    def setVel(self, move):
-        if self.dist2next > 0.7:
-            self.velocity = self.max_velocity
-        elif self.dist2next > 0.4:
-            self.velocity = 30.0
-        else:
-            self.velocity = 15.0
-
-        if move == -1:
-            self.velocity = -self.velocity
-
-    def setSteer(self, yaw, heading):
-        if abs(yaw - heading) > 0.03:
-            step = 1.0
-            adjustment = self.pid.adjust(yaw, heading, step)
-            if adjustment >= 0.0:
-                self.steering = min(adjustment, 1.0)
-            else:
-                self.steering = max(adjustment, -1.0)
+        return velocity, steering
 
 def main():
     """
