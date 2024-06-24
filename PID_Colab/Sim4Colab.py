@@ -213,21 +213,10 @@ class PathSimulator:
         self.planned_path = np.load('/content/Controls_Colab/PID_Colab/trajectory.npy')
         self.planned_path = [(x, y) for x, y in self.planned_path]
 
-        # Add heading to path, by calculating the angle between two consecutive points
-        heading = []
-        for i in range(len(self.planned_path)-1):
-            x1, y1 = self.planned_path[i]
-            x2, y2 = self.planned_path[i+1]
-            angle = atan2(y2-y1, x2-x1)
-            heading.append(angle)
-
-        heading.append(heading[-1])
-        self.planned_path = [(x, y, h) for (x, y), h in zip(self.planned_path, heading)]
-
         self.waypoints = {}
-        for i, (x, y, heading) in enumerate(self.planned_path):
+        for i, (x, y) in enumerate(self.planned_path):
             x_real, y_real = Grid2World((x, 500-y), 5.0, 500, 0.01)
-            self.waypoints[i+1] = (x_real, y_real, heading)
+            self.waypoints[i+1] = (x_real, y_real)
 
         print('Waypoints:', self.waypoints)
 
@@ -243,7 +232,7 @@ class PathSimulator:
         lookahead_point = None
         for i in range(self.next, self.length + 1):
             waypoint = self.waypoints[i]
-            waypoint_x, waypoint_y, _ = waypoint
+            waypoint_x, waypoint_y = waypoint
             distance = np.hypot(waypoint_x - x, waypoint_y - y)
             if distance > self.lookahead_distance:
                 lookahead_point = waypoint
@@ -258,15 +247,16 @@ class PathSimulator:
             return 0, 0  # No more waypoints to follow
 
         lookahead_point = self.find_lookahead_point(x, y)
-        waypoint_x, waypoint_y, waypoint_heading = lookahead_point
+        waypoint_x, waypoint_y = lookahead_point
 
         # Calculate cross-track error
         dx = waypoint_x - x
         dy = waypoint_y - y
         cross_track_error = np.hypot(dx, dy)
 
-        # Calculate heading error
-        heading_error = waypoint_heading - yaw
+        # Calculate heading to the lookahead point
+        desired_heading = atan2(dy, dx)
+        heading_error = desired_heading - yaw
         if heading_error > pi:
             heading_error -= 2 * pi
         elif heading_error < -pi:
