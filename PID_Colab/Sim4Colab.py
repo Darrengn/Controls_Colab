@@ -96,7 +96,7 @@ class Simulation():
         map_size = 5.0
         res = 0.01
         grid_size = int(map_size/res)
-        planned_path = [World2Grid(pt, map_size, grid_size) for pt in planned_path]
+        planned_path = [World2Grid(pt, map_size, grid_size, res) for pt in planned_path]
         planned_path = [(x, 500-y) for x, y in planned_path]
 
         self.sim.create_env(
@@ -119,13 +119,13 @@ class Simulation():
             sensors=SENSORS
         )
 
-        starting_point = Grid2World((planned_path[0][0], 500 - planned_path[0][1]), 5.0, 500, 0.01)
+        #starting_point = Grid2World((planned_path[0][0], 500 - planned_path[0][1]), 5.0, 500, 0.01)
 
-        print('Starting point:', starting_point)
+        # print('Starting point:', starting_point)
 
         self.car.place_car(
             self.sim.floor,
-            xy_coord=starting_point,
+            xy_coord=(0.0, 0.0),
         )
 
         # Initialize path simulator
