@@ -267,13 +267,22 @@ class PathSimulator():
         steering = np.clip(steering, -1, 1)  # Limit steering to [-1, 1]
 
         # Proportional control for velocity
-        distance_to_waypoint = np.hypot(dx, dy)
-        if distance_to_waypoint < 0.05:
-            self.next += 1
-        velocity = max(cross_track_error, 0.5)
+        velocity = min(self.max_velocity, cross_track_error) / self.max_velocity
         velocity = np.clip(velocity, -1, 1)  # Limit velocity to [-1, 1]
 
-        print('Waypoint:', self.next, 'Distance:', round(distance_to_waypoint, 2),'Velocity:', round(velocity, 2), 'Steering:', round(steering, 2))
+        # Check if the agent is stuck
+        self.time_spent += delta_time
+        if self.time_spent > 2.0:
+            # Agent is stuck, apply corrective measures
+            print(f"Agent stuck at waypoint {self.next}. Applying corrective measures.")
+            self.next += 1
+            self.time_spent = 0.0
+            return 0, 0
+
+        # Check if the agent has reached the waypoint
+        if cross_track_error < 1.0:
+            self.next += 1
+            self.time_spent = 0.0
 
         return velocity, steering
 
