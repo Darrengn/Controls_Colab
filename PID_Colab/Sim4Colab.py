@@ -125,7 +125,7 @@ class Simulation():
 
         self.car.place_car(
             self.sim.floor,
-            xy_coord=tuple(planned_path[0])
+            xy_coord=(0.0, 0.0)
         )
 
         # Initialize path simulator
