@@ -241,9 +241,9 @@ class PathSimulator():
             if i == 0:
                 self.waypoints[i+1] = (x_real, y_real, -pi/2, 0, 1)
             elif i == len(self.planned_path)-1:
-                self.waypoints[i+1] = (x_real, y_real, -pi/2, 0, 0)
+                self.waypoints[i+1] = (x_real, y_real, heading, 0, 1)
             else:
-                self.waypoints[i+1] = (x_real, y_real, -pi/2, 0, 1)
+                self.waypoints[i+1] = (x_real, y_real, heading, 1, 1)
 
 
         print('Waypoints:', self.waypoints)
