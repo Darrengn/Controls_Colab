@@ -12,7 +12,6 @@
 
 import sys
 sys.path.insert(0, '/content/OGM4Colab')
-!cd /
 
 from google.colab import output
 %matplotlib inline
