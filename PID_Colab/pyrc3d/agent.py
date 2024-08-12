@@ -470,3 +470,202 @@ class Car():
                                parentFramePosition=[0,0,0],
                                childFramePosition=[0,0,0])
         p.changeConstraint(c, gearRatio=-1, gearAuxLink=15, maxForce=10000)
+
+
+class HuskyKuka:
+    """
+    A module navigating a Husky robot
+    """
+    def __init__(self, husky_urdf_path: str, husky_config: str, sensors: None, debug=False) -> None:
+        """
+        Initialize HuskyKuka object.
+
+        Args:
+            husky_urdf_path: Path to the Husky URDF file.
+            husky_config: Path to the user's Husky config file.
+            sensors: A list of sensors to be used by the robot.
+            debug: If true, turn on sliders for manual control.
+        """
+        self.HUSKY_URDF_PATH = husky_urdf_path
+        self.DEBUG = debug
+
+        configs = utils.load_configs(husky_config)
+
+        # Load the Husky and Kuka URDF files.
+        self.husky_id = p.loadURDF(self.HUSKY_URDF_PATH, [0, 0, 0.1], [0, 0, 0, 1])
+
+        self.wheelVelocities = [0, 0, 0, 0]
+        self.wheelDeltasTurn = [1, -1, 1, -1]
+        self.wheelDeltasFwd = [1, 1, 1, 1]
+        self.speed = 5.0
+
+
+        # Reset Husky joints.
+        self.__reset_robot_joints(self.husky_id)
+
+        if self.DEBUG:
+            self.__add_sliders()
+
+        if sensors is not None:
+            self.sensors = {}
+            for sensor in sensors:
+                sensor_name = sensor.__name__.lower()
+                self.sensors[sensor_name] = sensor(
+                            robot_id=self.husky_id,
+                            configs=configs[sensor_name + '_configs']
+                        )
+                self.sensors[sensor.__name__.lower()].setup()
+
+    def place_robot(self, floor, xy_coord=(0, 0)) -> None:
+        """
+        Places the Husky robot in the sim env.
+
+        Args:
+            floor: The sim env's floor. This is required to determine the correct z-axis of objects.
+            xy_coord: A tuple (x, y) specifying initial x and y coord. of the robot.
+        Returns:
+            None.
+        Raises:
+            AssertionError: If `xy_coord` is not a tuple.
+        """
+        assert isinstance(xy_coord, tuple)
+
+        # Retrieve Husky's unique id.
+        robot_id = self.husky_id
+
+        # Get (x, y, z) initial coords of the Husky.
+        robot_x, robot_y = xy_coord
+        robot_z = utils.stable_z(robot_id, floor)
+        self.robot_z = robot_z
+
+        # Place robot in the sim env.
+        utils.set_point(robot_id, [robot_x, robot_y, robot_z])
+
+    def get_state(self, to_array=True, radian=True) -> np.array:
+        """
+        Returns the pose of the robot where pose is given by: (x, y, yaw),
+        where `x` and `y` is the robot's coordinate in the world's frame,
+        and `yaw` is the robot's yaw in its own frame (i.e: the robot's frame).
+
+        Args:
+            radian: If true, return `yaw` angle in radian.
+            to_array: If true, return pose as an array. Otherwise, return `x`, `y`, `yaw` individually.
+        Returns:
+            pose: Pose `x`, `y`, `yaw` of the robot as a (1, 3) numpy array if `to_array` is True,
+                  otherwise return them individually.
+        """
+        # Get robot's x, y, z coordinate in world frame.
+        coord = utils.get_xyz_point(self.husky_id)
+
+        coord = np.array(coord).reshape(-1, )
+
+        # Robot's yaw (theta) in world coordinate frame. (Range: [-pi, pi])
+        orientation = utils.get_pose(self.husky_id)[1]
+        yaw = p.getEulerFromQuaternion(orientation)[2]
+
+        if not radian:
+            yaw *= round(float(180 / np.pi), 2)
+
+        pose = np.hstack([coord[:2], yaw])  # omit z-coord.
+
+        if not to_array:
+            # Returns x, y, and yaw as individual floats.
+            return pose[0], pose[1], pose[2]
+
+        return pose
+
+    def act(self, v,s , f=1000) -> None:
+        """
+        Take action - i.e: use pybullet to execute changes on the robot's joints
+        based on velocity `v`, steering `s`, and force `f`.
+
+        Args:
+            v: Velocity command.
+            s: Steering command.
+            f: Max force command.
+        Returns:
+            None.
+        Raises:
+            None.
+        """
+        wheels = [2, 3, 4, 5]
+
+        self.wheelVelocities = [0, 0, 0, 0]
+        
+        if s < 0: # Turn left
+            for i, wheel in enumerate(wheels):
+                self.wheelVelocities[i] = self.wheelVelocities[i] - s * self.wheelDeltasTurn[i]
+
+        elif s > 0: # Turn right
+            for i, wheel in enumerate(wheels):
+                self.wheelVelocities[i] = self.wheelVelocities[i] + s * self.wheelDeltasTurn[i]
+
+        if v > 0: # Move forward
+            for i, wheel in enumerate(wheels):
+                self.wheelVelocities[i] = self.wheelVelocities[i] + v * self.wheelDeltasFwd[i]
+
+        elif v < 0:
+            for i, wheel in enumerate(wheels):
+                self.wheelVelocities[i] = self.wheelVelocities[i] - v * self.wheelDeltasFwd[i]
+
+        for i in range(len(wheels)):
+            p.setJointMotorControl2(self.husky_id,
+                                    wheels[i],
+                                    p.VELOCITY_CONTROL,
+                                    targetVelocity=self.wheelVelocities[i],
+                                    force=f)
+
+
+    def get_sensor_data(self, sensor: str, common=True):
+
+        current_robot_state = self.get_state(to_array=False, radian=False)
+        return self.sensors[sensor].retrieve_data(
+                    common=common,
+                    robot_state=current_robot_state
+                )
+    
+    def simulate_sensor(self, sensor: str, sensor_data: np.ndarray) -> None:
+        self.sensors[sensor].simulate(sensor_data)
+
+    def __reset_robot_joints(self, robot_id) -> None:
+        """
+        Reset robot's joints positions/states.
+        Args:
+            robot_id: The robot's unique id.
+        Returns:
+            None.
+        Raises:
+            None.
+        """
+        for joint in range(p.getNumJoints(robot_id)):
+            p.resetJointState(robot_id, joint, targetValue=0)
+            p.setJointMotorControl2(robot_id, joint, p.VELOCITY_CONTROL, force=0)
+
+    def __add_sliders(self) -> None:
+        """
+        Add sliders on the sim env.
+
+        Args:
+            None.
+        Returns:
+            None.
+        Raises:
+            None.
+        """
+        self.v_slider = p.addUserDebugParameter("Wheels' velocity", -1, 1, 0)
+        self.s_slider = p.addUserDebugParameter("Steering", -1, 1, 0)
+
+    def __exec_manual_control(self) -> float:
+        """
+        Manually control the robot's states via sliders.
+
+        Args:
+            None.
+        Returns:
+            None.
+        Raises:
+            None.
+        """
+        v = p.readUserDebugParameter(self.v_slider)
+        s = p.readUserDebugParameter(self.s_slider)
+        return v, s
