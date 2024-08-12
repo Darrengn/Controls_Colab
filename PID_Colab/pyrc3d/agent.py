@@ -506,7 +506,7 @@ class HuskyKuka:
 
         if self.DEBUG:
             self.__add_sliders()
-            
+
         if sensors is not None:
             self.sensors = {}
             for sensor in sensors:
@@ -515,7 +515,7 @@ class HuskyKuka:
                 # its `setup()` method.
                 sensor_name = sensor.__name__.lower()
                 self.sensors[sensor_name] = sensor(
-                            car_id=self.car_id,
+                            car_id=self.husky_id,
                             configs=configs[sensor_name + '_configs']
                         )
                 self.sensors[sensor.__name__.lower()].setup()
