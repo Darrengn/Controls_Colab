@@ -626,7 +626,7 @@ class HuskyKuka:
         current_robot_state = self.get_state(to_array=False, radian=False)
         return self.sensors[sensor].retrieve_data(
                     common=common,
-                    robot_state=current_robot_state
+                    car_state=current_robot_state
                 )
     
     def simulate_sensor(self, sensor: str, sensor_data: np.ndarray) -> None:
