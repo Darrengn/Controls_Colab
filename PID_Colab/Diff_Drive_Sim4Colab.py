@@ -115,7 +115,7 @@ class Simulation():
 
         # Initial the car
         self.husky = HuskyKuka(
-            urdf_path=HUSKY_URDF_PATH,
+            husky_urdf_path=HUSKY_URDF_PATH,
             husky_config=HUSKY_PATH,
             sensors=SENSORS
         )
