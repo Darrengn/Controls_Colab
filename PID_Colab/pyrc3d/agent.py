@@ -491,7 +491,7 @@ class HuskyKuka:
 
         configs = utils.load_configs(husky_config)
 
-        # Load the Husky and Kuka URDF files.
+        # Load the Husky file
         self.husky_id = p.loadURDF(self.HUSKY_URDF_PATH, [0, 0, 0.1], [0, 0, 0, 1])
         print(self.husky_id)
 

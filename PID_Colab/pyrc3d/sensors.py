@@ -329,7 +329,7 @@ class Lidar(Sensor):
     Lidar class to manage lidar module in PyBullet.
     """
     def __init__(self,
-            car_id: int,
+            car_id,
             configs: dict
         ) -> None:
         """
