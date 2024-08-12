@@ -509,10 +509,13 @@ class HuskyKuka:
         if sensors is not None:
             self.sensors = {}
             for sensor in sensors:
+                # Get string representation of `sensor`,
+                # instantiate the sensor, and call
+                # its `setup()` method.
                 sensor_name = sensor.__name__.lower()
                 self.sensors[sensor_name] = sensor(
-                            self.husky_id,
-                            configs[sensor_name + '_configs']
+                            car_id=self.husky_id,
+                            configs=configs[sensor_name + '_configs']
                         )
                 self.sensors[sensor.__name__.lower()].setup()
 
