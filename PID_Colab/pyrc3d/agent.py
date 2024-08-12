@@ -493,19 +493,6 @@ class HuskyKuka:
 
         # Load the Husky file
         self.husky_id = p.loadURDF(self.HUSKY_URDF_PATH, [0, 0, 0.1], [0, 0, 0, 1])
-        print(self.husky_id)
-
-        self.wheelVelocities = [0, 0, 0, 0]
-        self.wheelDeltasTurn = [1, -1, 1, -1]
-        self.wheelDeltasFwd = [1, 1, 1, 1]
-        self.speed = 5.0
-
-
-        # Reset Husky joints.
-        self.__reset_robot_joints(self.husky_id)
-
-        if self.DEBUG:
-            self.__add_sliders()
 
         if sensors is not None:
             self.sensors = {}
@@ -519,6 +506,20 @@ class HuskyKuka:
                             configs=configs[sensor_name + '_configs']
                         )
                 self.sensors[sensor.__name__.lower()].setup()
+
+        self.wheelVelocities = [0, 0, 0, 0]
+        self.wheelDeltasTurn = [1, -1, 1, -1]
+        self.wheelDeltasFwd = [1, 1, 1, 1]
+        self.speed = 5.0
+
+
+        # Reset Husky joints.
+        self.__reset_robot_joints(self.husky_id)
+
+        if self.DEBUG:
+            self.__add_sliders()
+
+        
 
     def place_robot(self, floor, xy_coord=(0, 0)) -> None:
         """
