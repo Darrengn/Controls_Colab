@@ -117,7 +117,7 @@ class Simulation():
         self.husky = HuskyKuka(
             husky_urdf_path=HUSKY_URDF_PATH,
             husky_config=HUSKY_PATH,
-            sensors=SENSORS
+            # sensors=SENSORS
         )
 
         #starting_point = Grid2World((planned_path[0][0], 500 - planned_path[0][1]), 5.0, 500, 0.01)

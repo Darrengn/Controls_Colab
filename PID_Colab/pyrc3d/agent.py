@@ -493,6 +493,7 @@ class HuskyKuka:
 
         # Load the Husky and Kuka URDF files.
         self.husky_id = p.loadURDF(self.HUSKY_URDF_PATH, [0, 0, 0.1], [0, 0, 0, 1])
+        print(self.husky_id)
 
         self.wheelVelocities = [0, 0, 0, 0]
         self.wheelDeltasTurn = [1, -1, 1, -1]
