@@ -512,14 +512,15 @@ class HuskyKuka:
                 # Get string representation of `sensor`,
                 # instantiate the sensor, and call
                 # its `setup()` method.
-                sensor_name = sensor.__name__.lower()
+                
                 try:
+                    sensor_name = sensor.__name__.lower()
                     self.sensors[sensor_name] = sensor(
                                 car_id=self.husky_id,
                                 configs=configs[sensor_name + '_configs']
                             )
                     self.sensors[sensor.__name__.lower()].setup()
-                except TypeError as e:
+                except Exception as e:
                     print(self.husky_id)
 
     def place_robot(self, floor, xy_coord=(0, 0)) -> None:
