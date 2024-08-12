@@ -509,10 +509,6 @@ class HuskyKuka:
         if sensors != None:
             self.sensors = {}
             for sensor in sensors:
-                # Get string representation of `sensor`,
-                # instantiate the sensor, and call
-                # its `setup()` method.
-                
                 try:
                     sensor_name = sensor.__name__.lower()
                     self.sensors[sensor_name] = sensor(
