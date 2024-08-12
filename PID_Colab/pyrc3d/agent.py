@@ -511,7 +511,7 @@ class HuskyKuka:
             for sensor in sensors:
                 sensor_name = sensor.__name__.lower()
                 self.sensors[sensor_name] = sensor(
-                            robot_id=self.husky_id,
+                            car_id=self.husky_id,
                             configs=configs[sensor_name + '_configs']
                         )
                 self.sensors[sensor.__name__.lower()].setup()
