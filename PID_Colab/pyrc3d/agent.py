@@ -1,7 +1,7 @@
 import numpy as np
 import pybullet as p
 from utilities import utils
-
+import sys
 # TODO:
 # - create car constraints from yaml since it's to jargon.
 
@@ -520,8 +520,9 @@ class HuskyKuka:
                                 configs=configs[sensor_name + '_configs']
                             )
                     self.sensors[sensor.__name__.lower()].setup()
-                except Exception as e:
+                except:
                     print(self.husky_id)
+                    sys.exit()
 
     def place_robot(self, floor, xy_coord=(0, 0)) -> None:
         """
