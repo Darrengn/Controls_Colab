@@ -151,9 +151,9 @@ class Simulation():
         image = None
 
         # Get sensors' data: array of hit points (x, y) in world coord
-        rays_data, dists, hitPoints = self.husky.get_sensor_data(
-            sensor = 'lidar',
-            common = False)
+        # rays_data, dists, hitPoints = self.husky.get_sensor_data(
+        #     sensor = 'lidar',
+        #     common = False)
 
         # Obtain the car's current pose and sensor data
         x, y, yaw = self.husky.get_state(to_array=False)
@@ -163,8 +163,8 @@ class Simulation():
         #     print("Current pose [x, y, theta]:", (round(x,2), round(y,2), round(yaw,2)))
 
         # Simulate LiDAR
-        if self.lidar_time.update_time():
-            self.husky.simulate_sensor('lidar', rays_data)
+        # if self.lidar_time.update_time():
+        #     self.husky.simulate_sensor('lidar', rays_data)
 
         # Perform car's movement
         if self.path_sim_time.update_time():
