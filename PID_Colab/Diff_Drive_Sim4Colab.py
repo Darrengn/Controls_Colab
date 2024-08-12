@@ -117,8 +117,7 @@ class Simulation():
         self.husky = HuskyKuka(
             husky_urdf_path=HUSKY_URDF_PATH,
             husky_config=HUSKY_PATH,
-            # sensors=SENSORS
-            sensors = None
+            sensors=SENSORS
         )
 
         #starting_point = Grid2World((planned_path[0][0], 500 - planned_path[0][1]), 5.0, 500, 0.01)
@@ -151,9 +150,9 @@ class Simulation():
         image = None
 
         # Get sensors' data: array of hit points (x, y) in world coord
-        # rays_data, dists, hitPoints = self.husky.get_sensor_data(
-        #     sensor = 'lidar',
-        #     common = False)
+        rays_data, dists, hitPoints = self.husky.get_sensor_data(
+            sensor = 'lidar',
+            common = False)
 
         # Obtain the car's current pose and sensor data
         x, y, yaw = self.husky.get_state(to_array=False)
@@ -163,8 +162,8 @@ class Simulation():
         #     print("Current pose [x, y, theta]:", (round(x,2), round(y,2), round(yaw,2)))
 
         # Simulate LiDAR
-        # if self.lidar_time.update_time():
-        #     self.husky.simulate_sensor('lidar', rays_data)
+        if self.lidar_time.update_time():
+            self.husky.simulate_sensor('lidar', rays_data)
 
         # Perform car's movement
         if self.path_sim_time.update_time():

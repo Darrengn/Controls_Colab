@@ -476,7 +476,7 @@ class HuskyKuka:
     """
     A module navigating a Husky robot
     """
-    def __init__(self, husky_urdf_path: str, husky_config: str, sensors: None, debug=False) -> None:
+    def __init__(self, husky_urdf_path: str, husky_config: str, sensors=None, debug=False) -> None:
         """
         Initialize HuskyKuka object.
 
@@ -506,8 +506,7 @@ class HuskyKuka:
 
         if self.DEBUG:
             self.__add_sliders()
-
-        if sensors is not None:
+        if sensors != None:
             self.sensors = {}
             for sensor in sensors:
                 # Get string representation of `sensor`,
