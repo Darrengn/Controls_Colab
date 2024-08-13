@@ -270,8 +270,8 @@ class PathSimulator():
             if theta_tar < 0:
                 err_ang = -err_ang
         
-        v = 4*err_lin #linear velocity
-        w = -2*err_ang #steering
+        v = 0*err_lin #linear velocity
+        w = 0*err_ang #steering
         return v, w
 
 def main():
