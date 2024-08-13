@@ -258,7 +258,7 @@ class PathSimulator():
         #check if close to the waypoint
         if err_lin < 0.5:
             self.next += 1
-            if self.next == len(self.planned_path):
+            if self.next == len(self.waypoints):
                 return float('inf'), float('inf')
             xtar, ytar, _ = self.planned_path[self.next]
             err_lin = ((ytar - y)**2 + (xtar - x)**2)**0.5
@@ -271,8 +271,8 @@ class PathSimulator():
                 err_ang = -err_ang
         # print(np.rad2deg(theta_tar), np.rad2deg(yaw), np.rad2deg(err_ang))
         # print(xtar,ytar, err_lin)
-        v = 1*err_lin #linear velocity
-        w = -4*err_ang #steering
+        v = 3*err_lin #linear velocity
+        w = -12*err_ang #steering
         return v, w
 
 def main():
