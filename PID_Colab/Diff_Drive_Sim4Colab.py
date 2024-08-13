@@ -94,7 +94,7 @@ class Simulation():
         ]
 
         map_size = 10.0
-        res = 0.01
+        res = 0.02
         grid_size = int(map_size/res)
         planned_path_grid = [World2Grid(pt, map_size, grid_size, res) for pt in planned_path]
         planned_path_grid = [(x, 500-y) for x, y in planned_path_grid]
