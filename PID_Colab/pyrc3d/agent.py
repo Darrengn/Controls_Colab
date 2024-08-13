@@ -613,8 +613,6 @@ class HuskyKuka:
             for i, wheel in enumerate(wheels):
                 self.wheelVelocities[i] = self.wheelVelocities[i] - v * self.wheelDeltasFwd[i]
 
-        print(self.wheelVelocities)
-
         for i in range(len(wheels)):
             p.setJointMotorControl2(self.husky_id,
                                     wheels[i],
