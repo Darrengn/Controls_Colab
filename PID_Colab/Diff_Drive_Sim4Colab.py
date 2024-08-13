@@ -253,7 +253,7 @@ class PathSimulator():
         self.ifTurn = False
 
     def navigate(self, x, y, yaw):
-        xtar, ytar, _ = self.planned_path[self.next]
+        xtar, ytar, _, _, _= self.waypoints[self.next]
         err_lin = ((ytar - y)**2 + (xtar - x)**2)**0.5
         #check if close to the waypoint
         if err_lin < 0.1:
