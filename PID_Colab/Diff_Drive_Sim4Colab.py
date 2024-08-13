@@ -177,7 +177,6 @@ class Simulation():
                 return image, dataset, -1
 
             # Perform action
-            print(vel,steering)
             self.husky.act(vel, steering)
 
             # Advance one time step in the simulation.
