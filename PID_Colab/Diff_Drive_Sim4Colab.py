@@ -271,7 +271,7 @@ class PathSimulator():
                 err_ang = -err_ang
         
         v = 0.1*err_lin #linear velocity
-        w = 0.1*err_ang #steering
+        w = 1*err_ang #steering
         return v, w
 
 def main():
