@@ -256,7 +256,7 @@ class PathSimulator():
         xtar, ytar, _, _, _= self.waypoints[self.next]
         err_lin = ((ytar - y)**2 + (xtar - x)**2)**0.5
         #check if close to the waypoint
-        if err_lin < 0.3:
+        if err_lin < 0.5:
             self.next += 1
             if self.next == len(self.planned_path):
                 return float('inf'), float('inf')

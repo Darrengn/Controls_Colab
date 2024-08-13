@@ -356,8 +356,8 @@ class Sim():
                 body = utils.create_box(self.obs_w, self.obs_w, self.obs_h, color=self.obs_color)
                 obstacles.append(body)
 
-            locs = [(2.5/2., 2.5/2.), (-2.5/2., 2.5/2.),
-                    (-2.5/2., -2.5/2.), (2.5/2., -2.5/2.)]
+            locs = [(5/2., 5/2.), (-5/2., 5/2.),
+                    (-5/2., -5/2.), (5/2., -5/2.)]
             self.obstacle_coordinates = locs
             for obst, coords in zip(obstacles, locs):
                 x = coords[0]
