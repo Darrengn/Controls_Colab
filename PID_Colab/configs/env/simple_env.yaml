@@ -1,7 +1,7 @@
 ---
  custom: false
  wall_w: 0.18 # width of side walls.
- floor_s: 5.0 # Creates a x by x floor, where x := floor_s
+ floor_s: 10.0 # Creates a x by x floor, where x := floor_s
  floor_h: 0.001 # Height of floor.
  n_obs: 4 # No. of obstacles.
  obs_h: 0.25 # Height of obstacles.
