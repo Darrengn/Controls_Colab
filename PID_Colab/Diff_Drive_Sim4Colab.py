@@ -287,10 +287,10 @@ def main():
 
         # Display the image
         if image is not None:
-            plt.clf()
-            clear_output(wait=True)
-            plt.imshow(image)
-            # pass
+            # plt.clf()
+            # clear_output(wait=True)
+            # plt.imshow(image)
+            pass
 
         if status == -1:
             print('Total run time:', floor((time()-t0)/60), 'min',
