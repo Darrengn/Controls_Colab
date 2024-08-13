@@ -273,7 +273,7 @@ class PathSimulator():
         # print(np.rad2deg(theta_tar), np.rad2deg(yaw), np.rad2deg(err_ang))
         # print(xtar,ytar, err_lin)
         v = 0*err_lin #linear velocity
-        w = -4*err_ang #steering
+        w = 4*err_ang #steering
         return v, w
 
 def main():
