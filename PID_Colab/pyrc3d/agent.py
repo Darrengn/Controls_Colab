@@ -602,6 +602,7 @@ class HuskyKuka:
                 self.wheelVelocities[i] = self.wheelVelocities[i] - s * self.wheelDeltasTurn[i]
 
         elif s > 0: # Turn right
+            print("here")
             for i, wheel in enumerate(wheels):
                 self.wheelVelocities[i] = self.wheelVelocities[i] + s * self.wheelDeltasTurn[i]
 
