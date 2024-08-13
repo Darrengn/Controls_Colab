@@ -492,7 +492,7 @@ class HuskyKuka:
         configs = utils.load_configs(husky_config)
 
         # Load the Husky file
-        self.husky_id = p.loadURDF(self.HUSKY_URDF_PATH, [0, 0, 0.5], [0, 0, 0, 1])
+        self.husky_id = p.loadURDF(self.HUSKY_URDF_PATH, [0, 0, 0.1], [0, 0, 0, 1])
 
         if sensors is not None:
             self.sensors = {}
