@@ -93,7 +93,7 @@ class Simulation():
             [0.0, 0.0]
         ]
 
-        map_size = 5.0
+        map_size = 10.0
         res = 0.01
         grid_size = int(map_size/res)
         planned_path_grid = [World2Grid(pt, map_size, grid_size, res) for pt in planned_path]
@@ -271,7 +271,7 @@ class PathSimulator():
                 err_ang = -err_ang
         # print(np.rad2deg(theta_tar), np.rad2deg(yaw), np.rad2deg(err_ang))
         # print(xtar,ytar, err_lin)
-        v = 0.5*err_lin #linear velocity
+        v = 1*err_lin #linear velocity
         w = -4*err_ang #steering
         return v, w
 
