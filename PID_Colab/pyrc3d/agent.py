@@ -492,7 +492,7 @@ class HuskyKuka:
         configs = utils.load_configs(husky_config)
 
         # Load the Husky file
-        self.husky_id = p.loadURDF(self.HUSKY_URDF_PATH, [0, 0, 0.1], [0, 0, 0, 1])
+        self.husky_id = p.loadURDF(self.HUSKY_URDF_PATH, [0, 0, 0.5], [0, 0, 0, 1])
 
         if sensors is not None:
             self.sensors = {}
@@ -544,7 +544,7 @@ class HuskyKuka:
         self.robot_z = robot_z
 
         # Place robot in the sim env.
-        utils.set_point(robot_id, [robot_x, robot_y, robot_z + 0.5])
+        utils.set_point(robot_id, [robot_x, robot_y, robot_z])
 
     def get_state(self, to_array=True, radian=True) -> np.array:
         """
