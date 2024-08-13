@@ -177,6 +177,7 @@ class Simulation():
                 return image, dataset, -1
 
             # Perform action
+            print(vel,steering)
             self.husky.act(vel, steering)
 
             # Advance one time step in the simulation.
@@ -220,7 +221,7 @@ class PathSimulator():
         # turn: 1: right,   -1: left
         # (x, y, heading, turn, move)
         self.waypoints = {
-            1: (0.0, 1.95, -pi/2, 1, 1),  2: (-1.95, -1.95, pi, 1, 1),
+            1: (0.0, -1.95, -pi/2, 1, 1),  2: (-1.95, -1.95, pi, 1, 1),
             3: (-1.95, 1.95, pi/2, 1, 1), 4: (1.95, 1.95, 0.0, 1, 1),
             5: (1.95, -1.95, -pi/2, 1, 1), 6: (0.0, -1.95, pi, 1, 1),
             7: (0.0, 1.95, pi/2, 1, 1), 8: (-1.95, 1.95, pi, -1, 1),
@@ -269,7 +270,7 @@ class PathSimulator():
             err_ang = abs(err_ang) - 2*np.pi
             if theta_tar < 0:
                 err_ang = -err_ang
-        print(np.rad2deg(theta_tar), np.rad2deg(yaw), np.rad2deg(err_ang))
+        # print(np.rad2deg(theta_tar), np.rad2deg(yaw), np.rad2deg(err_ang))
         # print(xtar,ytar, err_lin)
         v = 0*err_lin #linear velocity
         w = -4*err_ang #steering
