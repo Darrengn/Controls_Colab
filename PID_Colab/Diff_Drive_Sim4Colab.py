@@ -247,7 +247,7 @@ class PathSimulator():
 
         print('Waypoints:', self.waypoints)
 
-        self.next = 0 # waypoint number (was 1 for ackermann)
+        self.next = 1 # waypoint number (was 1 for ackermann)
         self.length = len(self.waypoints)
         self.dist2next = 0
         self.ifTurn = False
