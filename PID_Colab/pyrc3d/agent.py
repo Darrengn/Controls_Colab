@@ -544,7 +544,7 @@ class HuskyKuka:
         self.robot_z = robot_z
 
         # Place robot in the sim env.
-        utils.set_point(robot_id, [robot_x, robot_y, robot_z])
+        utils.set_point(robot_id, [robot_x, robot_y, robot_z + 0.5])
 
     def get_state(self, to_array=True, radian=True) -> np.array:
         """
