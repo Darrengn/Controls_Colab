@@ -201,7 +201,7 @@ class Sim():
         """
 
         cameraTargetPosition = [0.0, 0.02, 0]
-        camera_height = 5
+        camera_height = 10
         yaw_angle, pitch_angle = 0, -90
 
         # Get the camera view matrix
