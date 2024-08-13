@@ -269,7 +269,7 @@ class PathSimulator():
             err_ang = abs(err_ang) - 2*np.pi
             if theta_tar < 0:
                 err_ang = -err_ang
-        
+        print(err_ang)
         v = 0*err_lin #linear velocity
         w = 1*err_ang #steering
         return v, w
@@ -287,9 +287,10 @@ def main():
 
         # Display the image
         if image is not None:
-            plt.clf()
-            clear_output(wait=True)
-            plt.imshow(image)
+            # plt.clf()
+            # clear_output(wait=True)
+            # plt.imshow(image)
+            pass
 
         if status == -1:
             print('Total run time:', floor((time()-t0)/60), 'min',
