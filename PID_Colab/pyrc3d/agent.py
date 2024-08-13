@@ -599,10 +599,9 @@ class HuskyKuka:
         
         if s < 0: # Turn left
             for i, wheel in enumerate(wheels):
-                self.wheelVelocities[i] = self.wheelVelocities[i] - s * self.wheelDeltasTurn[i]
+                self.wheelVelocities[i] = self.wheelVelocities[i] + s * self.wheelDeltasTurn[i]
 
         elif s > 0: # Turn right
-            print("here")
             for i, wheel in enumerate(wheels):
                 self.wheelVelocities[i] = self.wheelVelocities[i] + s * self.wheelDeltasTurn[i]
 
@@ -614,7 +613,6 @@ class HuskyKuka:
             for i, wheel in enumerate(wheels):
                 self.wheelVelocities[i] = self.wheelVelocities[i] - v * self.wheelDeltasFwd[i]
 
-        print(self.wheelVelocities)
         
         for i in range(len(wheels)):
             p.setJointMotorControl2(self.husky_id,
