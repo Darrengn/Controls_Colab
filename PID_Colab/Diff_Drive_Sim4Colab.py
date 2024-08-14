@@ -201,6 +201,7 @@ class PathSimulator():
 
         self.velocity = 0
         self.steering = 0
+        self.err_accum = 0
 
         self.planned_path = np.load('/content/Controls_Colab/PID_Colab/trajectory.npy')
         self.planned_path = [(x, y) for x, y in self.planned_path]
@@ -255,11 +256,11 @@ class PathSimulator():
     def navigate(self, x, y, yaw):
         xtar, ytar, _, _, _= self.waypoints[self.next]
         err_lin = ((ytar - y)**2 + (xtar - x)**2)**0.5
-        err_accum = 0
+        
         #check if close to the waypoint
         if err_lin < 0.5:
             self.next += 1
-            err_accum = 0
+            self.err_accum = 0
             if self.next == len(self.waypoints ) + 1:
                 return float('inf'), float('inf')
             xtar, ytar, _ = self.planned_path[self.next]
@@ -272,11 +273,11 @@ class PathSimulator():
             if theta_tar < 0:
                 err_ang = -err_ang
         
-        err_accum += err_lin
-        print(err_accum)
+        self.err_accum += err_lin
+        print(self.err_accum)
         # print(np.rad2deg(theta_tar), np.rad2deg(yaw), np.rad2deg(err_ang))
         # print(xtar,ytar, err_lin)
-        v = 2*err_lin + 0.05*err_accum #linear velocity
+        v = 2*err_lin + 0.001*self.err_accum #linear velocity
         w = -10*err_ang #steering
         return v, w
 
